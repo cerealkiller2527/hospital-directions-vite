@@ -58,25 +58,68 @@
   }
 }
 
-/* Custom scrollbar styling */
-.scrollbar-thin {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-}
+/* RE-ADD Custom Marker Animation */
+@layer utilities {
+  /* Custom scrollbar styling - Applied GLOBALLY to Radix Viewports */
+  [data-radix-scroll-area-viewport] {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent; /* Firefox */
+  }
 
-.scrollbar-thin::-webkit-scrollbar {
-  width: 4px;
-}
+  /* Target webkit scrollbars *within* the Viewport */
+  [data-radix-scroll-area-viewport]::-webkit-scrollbar {
+    width: 4px;
+  }
 
-.scrollbar-thin::-webkit-scrollbar-track {
-  background: transparent;
-}
+  [data-radix-scroll-area-viewport]::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-.scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.15);
-  border-radius: 20px;
-}
+  [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 20px;
+  }
 
-.scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.25);
+  [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.25);
+  }
+
+  /* Add custom low-profile scrollbar class that can be applied anywhere */
+  .lowprofile-scrollbar {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent; /* Firefox */
+  }
+
+  .lowprofile-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .lowprofile-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .lowprofile-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 20px;
+  }
+
+  .lowprofile-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.25);
+  }
+
+  /* Marker Animation */
+  @keyframes marker-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.35);
+      opacity: 0.9;
+    }
+  }
+
+  .animate-marker-select {
+    animation: marker-pulse 1.6s ease-in-out infinite;
+  }
 }

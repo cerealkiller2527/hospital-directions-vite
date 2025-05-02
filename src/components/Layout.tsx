@@ -83,76 +83,52 @@ interface SidebarContainerProps {
 }
 
 export function SidebarContainer({ children, isOpen, className }: SidebarContainerProps) {
+  const outerRef = useRef<HTMLDivElement>(null)
+  const innerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
-  const [contentHeight, setContentHeight] = useState<number | undefined>(undefined)
 
-  // Calculate available height and update when window resizes
+  // Effect to dynamically adjust inner container height
   useEffect(() => {
-    const calculateHeights = () => {
-      const headerHeight = 64 // 64px header
-      const bottomPadding = 16 // 16px padding at bottom
-      const availableHeight = window.innerHeight - headerHeight - bottomPadding
-
-      if (contentRef.current) {
-        const actualContentHeight = contentRef.current.scrollHeight
-
-        if (actualContentHeight < availableHeight - 32) {
-          setContentHeight(undefined) // Use auto height
-        } else {
-          setContentHeight(availableHeight - 32) // Fixed height with scrolling
-        }
+    if (!isOpen) {
+      if (innerRef.current) {
+        innerRef.current.style.height = 'auto'
       }
+      return;
     }
 
-    calculateHeights()
-    window.addEventListener("resize", calculateHeights)
+    const updateHeight = () => {
+      if (!innerRef.current || !contentRef.current) return;
+      const windowHeight = window.innerHeight;
+      const headerHeight = 64; // fixed header
+      const outerPadding = 32; // 1rem top + bottom
+      const maxHeight = windowHeight - headerHeight - outerPadding;
+      const contentHeight = contentRef.current.scrollHeight + 24; // include inner padding 0.75*2
+      if (contentHeight > maxHeight) {
+        innerRef.current.style.height = `${maxHeight}px`;
+      } else {
+        innerRef.current.style.height = 'auto';
+      }
+    };
 
-    // Add mutation observer to detect DOM changes
-    const mutationObserver = new MutationObserver(calculateHeights)
-    if (contentRef.current) {
-      mutationObserver.observe(contentRef.current, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-      })
-    }
+    // Initial update after next paint
+    const rAF = requestAnimationFrame(updateHeight);
+    window.addEventListener('resize', updateHeight);
+
+    // Observe content size changes
+    const resizeObserver = new ResizeObserver(updateHeight);
+    if (contentRef.current) resizeObserver.observe(contentRef.current);
 
     return () => {
-      window.removeEventListener("resize", calculateHeights)
-      mutationObserver.disconnect()
-    }
-  }, [])
+      cancelAnimationFrame(rAF);
+      window.removeEventListener('resize', updateHeight);
+      resizeObserver.disconnect();
+    };
+  }, [isOpen, children]);
 
   return (
-    <div
-      className={cn(
-        "fixed top-16 left-0 z-30 w-[420px]",
-        "transition-all duration-300 ease-in-out",
-        !isOpen && "-translate-x-full",
-        className,
-      )}
-      style={{
-        maxHeight: `calc(100vh - 64px)`,
-        padding: "1rem",
-      }}
-    >
-      <div
-        className="w-full bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden"
-        style={{
-          padding: "0.5rem",
-          height: contentHeight === undefined ? "auto" : "auto",
-          maxHeight: contentHeight ? `${contentHeight}px` : "calc(100vh - 64px - 32px)",
-        }}
-      >
-        <div
-          ref={contentRef}
-          className="w-full overflow-y-auto rounded-lg bg-white scrollbar-thin"
-          style={{
-            padding: "0.75rem",
-            height: contentHeight === undefined ? "auto" : `${contentHeight}px`,
-            maxHeight: contentHeight === undefined ? "auto" : `${contentHeight}px`,
-          }}
-        >
+    <div className={cn("fixed top-16 left-0 z-30 w-[420px]","transition-all duration-300 ease-in-out",!isOpen && "-translate-x-full",className)} style={{padding:"1rem"}} ref={outerRef}>
+      <div ref={innerRef} className="w-full bg-white rounded-xl shadow-xl border border-gray-100 flex flex-col overflow-hidden" style={{maxHeight:`calc(100vh - 64px - 2rem)`}}>
+        <div ref={contentRef} className="w-full flex-1 flex flex-col overflow-hidden" style={{padding:"0.75rem"}}>
           {children}
         </div>
       </div>
