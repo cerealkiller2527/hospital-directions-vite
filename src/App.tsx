@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useHospitalData } from "@/lib/hooks/useHospitalData"
-import { useHospitalSearch } from "@/lib/hooks/useHospitalSearch"
 import { useGeolocation } from "@/lib/hooks/useGeolocation"
 import { AppHeader, SidebarContainer } from "@/components/Layout"
 import { MapProvider, useMap } from "@/contexts/MapContext"
@@ -14,7 +13,7 @@ import { LocationMarker } from "@/components/map/LocationMarker"
 import { LocationPopup } from "@/components/map/LocationPopup"
 import { UserLocationMarker } from "@/components/map/UserLocationMarker"
 import { HospitalList } from "@/components/map/ui/HospitalList"
-import { SearchInput } from "@/components/map/ui/SearchInput"
+import { UserLocationInput } from "@/components/map/ui/UserLocationInput"
 import { DirectionsCard } from "@/components/map/ui/DirectionsCard"
 import { initializeMap } from "@/lib/services/mapbox-service"
 import { MAP_STYLE, DEFAULT_MAP_VIEW } from "@/lib/mapbox"
@@ -34,12 +33,19 @@ import {
   Activity,
   SquareUserRound,
   Navigation,
-  Loader2
+  Loader2,
+  CheckCircle,
+  AlertTriangle,
+  Info,
+  LocateFixed
 } from "lucide-react";
 import { useMapInitialization } from "@/lib/hooks/useMapInitialization"; // Import the new hook
 import { RouteLayerManager } from "@/components/map/RouteLayerManager"; // Import the manager
 import { useDirections } from "@/lib/hooks/useDirections"; // Import the directions hook
-import { calculateBearing } from '@/lib/utils';
+import { calculateBearing, calculateDistance } from '@/lib/utils';
+import { Toaster } from "@/components/ui/sonner"; // Import Toaster
+import { toast } from "sonner"; // Import toast function
+import { RouteInfoCard } from "@/components/map/ui/RouteInfoCard"; // Import the new card
 
 // Mock directions for now until API integration
 const mockDirections: Directions = {
@@ -79,6 +85,11 @@ const hospitalIconMapping: Record<number, string> = {
 
 // Define the combined type for flyTo options
 type CustomFlyToOptions = Omit<mapboxgl.CameraOptions & mapboxgl.AnimationOptions, 'center'>;
+
+// Define an extended Hospital type that includes distance
+interface HospitalWithDistance extends Hospital {
+  distanceMiles?: number | null;
+}
 
 // Main Map Component
 function MainMap() {
@@ -166,17 +177,10 @@ function MainMap() {
 
 // App Content Component
 function AppContent() {
-  const [activeTab, setActiveTab] = useState<"list" | "directions">("list")
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   // Fetch hospital data
   const { hospitals: allHospitals, loading: hospitalsLoading, error: hospitalsError } = useHospitalData()
-
-  // LIFT search state here
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Setup search hook to ONLY filter based on lifted state
-  const { filteredHospitals } = useHospitalSearch(allHospitals, searchQuery) // Pass searchQuery
 
   const {
     map: mapInstance,
@@ -184,9 +188,13 @@ function AppContent() {
     popupLocation, setPopupLocation,
     userLocation, setUserLocation,
     flyTo, transportMode,
-    setAnimatingMarkerId
+    setAnimatingMarkerId,
+    activeTab, setActiveTab
   } = useMap()
   const { location: geoLoc, loading: geoLoading, error: geoError, getCurrentPosition } = useGeolocation()
+
+  // Ref to track if location found toast was shown
+  const locationToastShownRef = useRef(false);
 
   // --- Use the Directions Hook --- 
   const { 
@@ -194,20 +202,84 @@ function AppContent() {
     currentRoute, 
     isLoading: directionsLoading, 
     error: directionsError, 
-    selectRoute // Get the selectRoute function from the hook
+    selectRoute
   } = useDirections(
     userLocation, 
-    // Only pass destination if directions tab is active
     activeTab === 'directions' ? selectedLocation : null, 
     transportMode
   );
 
-  // Update map context when geolocation hook provides location
+  // Update map context and show toast when geolocation hook provides location
   useEffect(() => {
     if (geoLoc) {
-      setUserLocation(geoLoc)
+      setUserLocation(geoLoc);
+      if (!locationToastShownRef.current) {
+        toast.success("Your location has been updated.", {
+          icon: <CheckCircle className="h-4 w-4" />,
+        });
+        locationToastShownRef.current = true; // Mark toast as shown
+      }
+    } 
+    // else { locationToastShownRef.current = false; } // Optional reset
+  }, [geoLoc, setUserLocation]);
+
+  // Show error toast if geolocation fails
+  useEffect(() => {
+    if (geoError) {
+      toast.error(geoError, {
+        icon: <AlertTriangle className="h-4 w-4" />,
+      });
+      locationToastShownRef.current = false; // Reset flag
     }
-  }, [geoLoc, setUserLocation]) // Dependency array corrected
+  }, [geoError]);
+
+  // --- useEffect for Directions Tab without Destination --- 
+  useEffect(() => {
+    if (activeTab === 'directions' && !selectedLocation) {
+      toast.info("Please select a hospital from the list or map to view directions.", {
+        icon: <Info className="h-4 w-4" />,
+      });
+    }
+  }, [activeTab, selectedLocation]); 
+
+  // --- Calculate Distances and Sort Hospitals ---
+  const processedHospitals = useMemo<HospitalWithDistance[]>(() => {
+    const hospitalsArray = Array.isArray(allHospitals) ? allHospitals : [];
+    
+    if (userLocation) {
+      // Calculate distances and add them
+      const hospitalsWithDistances = hospitalsArray.map(hospital => ({
+        ...hospital,
+        distanceMiles: calculateDistance(userLocation, hospital.coordinates as [number, number] | undefined)
+      }));
+      
+      // Sort by Open Status (Open > Unknown > Closed), then by Distance
+      return hospitalsWithDistances.sort((a, b) => {
+        // Assign numeric priority based on isOpen status
+        const getStatusPriority = (status: boolean | undefined): number => {
+            if (status === true) return 0; // Open highest priority
+            if (status === undefined) return 1; // Unknown hours next
+            return 2; // Closed lowest priority
+        };
+        
+        const priorityA = getStatusPriority(a.isOpen);
+        const priorityB = getStatusPriority(b.isOpen);
+
+        // 1. Sort by Status Priority
+        if (priorityA !== priorityB) {
+          return priorityA - priorityB;
+        }
+
+        // 2. If Status is the same, sort by Distance (handle null distances)
+        if (a.distanceMiles === null) return 1; 
+        if (b.distanceMiles === null) return -1;
+        return a.distanceMiles - b.distanceMiles;
+      });
+    } else {
+      // No user location, sort alphabetically by name
+      return [...hospitalsArray].sort((a, b) => a.name.localeCompare(b.name));
+    }
+  }, [allHospitals, userLocation]);
 
   // --- Handlers need to be defined before effects that use them ---
   
@@ -217,23 +289,14 @@ function AppContent() {
     setPopupLocation(null);        
     setAnimatingMarkerId(hospital.id);
     if (hospital.coordinates) {
-        // Use the defined type alias
         let flyToOptions: CustomFlyToOptions = {
           pitch: 70, 
           speed: 1.8,
           bearing: mapInstance?.getBearing() ?? 0, 
-          zoom: 18 // Set default zoom to 18
+          zoom: 18
         };
-
         if (hospital.id === 1) {
-          flyToOptions = {
-            ...flyToOptions,
-            // No center here
-            zoom: 19.56, 
-            pitch: 71.00,
-            bearing: 16.00,
-          };
-          // Pass hospital ID
+          flyToOptions = { ...flyToOptions, zoom: 19.56, pitch: 71.00, bearing: 16.00 };
           flyTo([-71.167169, 42.323224], flyToOptions.zoom, flyToOptions, hospital.id);
         } else {
           if (userLocation) { 
@@ -243,7 +306,6 @@ function AppContent() {
               console.error("Error calculating bearing:", error);
             }
           }
-          // Pass hospital ID
           flyTo(hospital.coordinates as [number, number], flyToOptions.zoom, flyToOptions, hospital.id);
         }
     }
@@ -251,10 +313,10 @@ function AppContent() {
 
   // Function to handle directions button clicks (from list or popup)
   const handleViewDirections = useCallback((hospital: Hospital) => {
-    setSelectedLocation(hospital); // Selects the hospital (updates layer style)
-    setPopupLocation(null); // Close popup if open       
-    setAnimatingMarkerId(null); // RE-ADD: Stop animation when viewing directions
-    setActiveTab("directions");    
+    setSelectedLocation(hospital);
+    setPopupLocation(null);      
+    setAnimatingMarkerId(null); // Stop animation
+    setActiveTab("directions"); // Switch tab    
   }, [setSelectedLocation, setPopupLocation, setAnimatingMarkerId, setActiveTab]);
   
   const toggleSidebar = useCallback(() => {
@@ -264,45 +326,26 @@ function AppContent() {
     }, 300) 
   }, [mapInstance])
 
-  const handleClearSearch = useCallback(() => {
-    setSearchQuery("") // Use the lifted setter
-  }, [setSearchQuery]) // Update dependency
-
-  const handleMyLocationClick = useCallback(() => {
-    if (userLocation) {
-      // Use maxZoom and increase pitch
-      flyTo(userLocation, DEFAULT_MAP_VIEW.maxZoom, { pitch: 85, speed: 1.8 }); 
-    } else {
-      getCurrentPosition()
-    }
-  }, [userLocation, getCurrentPosition, flyTo]); // Added flyTo dependency
-
   const sidebarContent = useMemo(
     () => (
       <div className="flex flex-col h-full">
-        <div className="flex-shrink-0 space-y-4 mb-4 px-1">
-          <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder="Search hospitals..." />
-
-          <Button
-            size="sm"
-            className="h-10 gap-1 w-full text-sm flex-shrink-0"
-            onClick={handleMyLocationClick}
-            disabled={geoLoading}
-          >
-            <Navigation className="h-4 w-4 flex-shrink-0" />
-            <span className="whitespace-nowrap">{geoLoading ? 'Finding...' : 'My Location'}</span>
-          </Button>
-          {geoError && <p className="text-xs text-red-600 text-center">{geoError}</p>}
+        <div className="flex-shrink-0 mb-4 px-1">
+          <UserLocationInput 
+              getCurrentPosition={getCurrentPosition}
+              isGeoLoading={geoLoading}
+          />
+          {geoError && <p className="text-xs text-red-600 text-center mt-1">{geoError}</p>}
         </div>
 
         <Tabs
           value={activeTab}
-          onValueChange={(value) => setActiveTab(value as "list" | "directions")}
+          onValueChange={(value) => setActiveTab(value as "list" | "directions" | "indoor")}
           className="flex flex-col flex-1 h-0 min-h-0"
         >
-          <TabsList className="grid w-full grid-cols-2 h-9 flex-shrink-0 mb-2">
+          <TabsList className="grid w-full grid-cols-3 h-9 flex-shrink-0 mb-2">
             <TabsTrigger value="list" className="text-xs">List View</TabsTrigger>
             <TabsTrigger value="directions" className="text-xs">Directions</TabsTrigger>
+            <TabsTrigger value="indoor" className="text-xs" disabled={!selectedLocation}>Indoor</TabsTrigger>
           </TabsList>
           <TabsContent 
             value="list" 
@@ -317,13 +360,12 @@ function AppContent() {
             ) : hospitalsError ? (
               <div className="text-center py-8 text-sm text-red-600">{hospitalsError}</div>
             ) : (
-              <div className="flex-1 h-0 min-h-0 overflow-y-auto lowprofile-scrollbar">
+              <div className="flex-1 h-0 min-h-0">
                 <HospitalList
-                  hospitals={filteredHospitals}
-                  searchQuery={searchQuery}
-                  onClearSearch={handleClearSearch}
+                  hospitals={processedHospitals}
                   onSelectItem={handleSelectHospitalFromList}
                   onViewDirections={handleViewDirections}
+                  iconMapping={hospitalIconMapping}
                 />
               </div>
             )}
@@ -340,26 +382,38 @@ function AppContent() {
               onSelectRoute={selectRoute}
             />
           </TabsContent>
+          <TabsContent 
+            value="indoor" 
+            className="flex-1 h-0 min-h-0 flex flex-col data-[state=active]:flex data-[state=inactive]:hidden p-4"
+          >
+            <h3 className="text-sm font-semibold mb-2">Indoor Path Planning</h3>
+            {selectedLocation ? (
+                 <p className="text-xs text-muted-foreground">
+                    Indoor navigation for <span className="font-medium text-foreground">{selectedLocation.name}</span> will appear here.
+                 </p>
+             ) : (
+                 <p className="text-xs text-muted-foreground">Please select a hospital destination first.</p>
+             )}
+          </TabsContent>
         </Tabs>
       </div>
     ),
-    [searchQuery, setSearchQuery, handleMyLocationClick, geoLoading, geoError, activeTab, filteredHospitals, handleClearSearch, selectedLocation, allRoutes, directionsLoading, directionsError, hospitalsLoading, hospitalsError, handleViewDirections, handleSelectHospitalFromList, selectRoute]
+    [getCurrentPosition, geoLoading, geoError, activeTab, setActiveTab, processedHospitals, selectedLocation, allRoutes, directionsLoading, directionsError, hospitalsLoading, hospitalsError, handleViewDirections, handleSelectHospitalFromList, selectRoute]
   )
 
   return (
-      <div className="relative min-h-screen overflow-hidden">
-        <AppHeader 
-          isSidebarOpen={sidebarOpen} 
-          onToggleSidebar={toggleSidebar} 
-          searchQuery={searchQuery} 
-          setSearchQuery={setSearchQuery} 
-        />
+    <div className="relative min-h-screen overflow-hidden">
+      <AppHeader 
+        isSidebarOpen={sidebarOpen} 
+        onToggleSidebar={toggleSidebar} 
+      />
       <div className="relative pt-16 h-screen">
         <SidebarContainer isOpen={sidebarOpen}>{sidebarContent}</SidebarContainer>
         <div className="absolute top-16 bottom-0 left-0 right-0" style={{ zIndex: Z_INDEX.base }}>
           <MainMap /> 
           <RouteLayerManager routes={allRoutes} onSelectRoute={selectRoute} />
-          {!hospitalsLoading && allHospitals.map((hospital) =>
+          
+          {mapInstance && !hospitalsLoading && allHospitals.map((hospital) =>
             hospital.coordinates ? (
               <LocationMarker
                 key={hospital.id}
@@ -368,15 +422,19 @@ function AppContent() {
               />
             ) : null
           )}
-          <UserLocationMarker />
+          {mapInstance && <UserLocationMarker />}
           {popupLocation && (
             <LocationPopup 
               location={popupLocation} 
-              onViewDirections={handleViewDirections} 
+              onViewDirections={handleViewDirections}
               iconName={hospitalIconMapping[popupLocation.id] || 'hospital'}
             />
           )}
-          <MapControls />
+          {mapInstance && <MapControls />}
+          <RouteInfoCard 
+            route={currentRoute} 
+            className="absolute top-4 right-4 z-10" 
+          />
         </div>
       </div>
     </div>
@@ -389,6 +447,14 @@ export default function App() {
     <MapErrorBoundary fallback={<p>Map failed to load. Please refresh.</p>}> 
       <MapProvider>
         <AppContent />
+        <Toaster 
+          position="top-center" 
+          richColors 
+          closeButton 
+          toastOptions={{
+            style: { marginTop: '3.5rem' },
+          }}
+        />
     </MapProvider>
     </MapErrorBoundary>
   )

@@ -122,4 +122,46 @@
   .animate-marker-select {
     animation: marker-pulse 1.6s ease-in-out infinite;
   }
+
+  /* NEW: Moving Glow Animation */
+  @keyframes moving-glow {
+    0% {
+      /* Start slightly expanded and visible - Increased size/opacity */
+      box-shadow: 0 0 0 5px hsl(var(--primary) / 0.7);
+      opacity: 0.7;
+    }
+    70%, 100% {
+      /* Expand shadow significantly and fade out - Increased final size */
+      box-shadow: 0 0 0 20px hsl(var(--primary) / 0);
+      opacity: 0;
+    }
+  }
+
+  /* Class to apply the glow via pseudo-element */
+  .marker-icon-container-glow::after {
+    content: "";
+    position: absolute;
+    /* Position slightly outside the parent bounds */
+    inset: -3px;
+    border-radius: inherit; /* Inherit parent's border radius */
+    /* Apply the animation */
+    animation: moving-glow 1.4s infinite ease-out;
+    /* Ensure it's behind the icon */
+    z-index: -1;
+    pointer-events: none; /* Don't intercept clicks */
+  }
+
+  /* NEW: Jump Animation */
+  @keyframes marker-jump {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-7px); /* Adjust jump height */
+    }
+  }
+
+  .animate-marker-jump {
+    animation: marker-jump 0.8s ease-in-out infinite;
+  }
 }

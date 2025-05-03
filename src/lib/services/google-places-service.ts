@@ -12,11 +12,45 @@ interface GetPlaceDetailsResult {
   error: string | null;
 }
 
-const API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY || '';
-// Remove BASE_URL as we use relative proxy path
-// const BASE_URL = 'https://maps.googleapis.com/maps/api/place';
+// Use the original environment variable name
+const API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
+const BASE_URL = '/api/google-places'; // Use the proxy path
+
+interface PlaceDetailsResult {
+  name: string;
+  address?: string;
+  phone?: string;
+  website?: string;
+  coordinates?: [number, number];
+  isOpen?: boolean;
+  placeId?: string;
+}
+
+interface PlaceSearchResult {
+  data: string | null; // Place ID
+  error: string | null;
+}
+
+// New interface for Autocomplete suggestions
+export interface AutocompleteSuggestion {
+  description: string;
+  place_id: string;
+}
+
+// New interface for Autocomplete response
+interface AutocompleteResponse {
+  data: AutocompleteSuggestion[] | null;
+  error: string | null;
+}
+
+// New interface for Coordinates response
+interface CoordinatesResponse {
+  data: [number, number] | null;
+  error: string | null;
+}
 
 if (!API_KEY) {
+  // Update error message to reflect the correct variable name
   console.error('Missing Google Places API key. Set VITE_GOOGLE_PLACES_API_KEY in your .env file.');
 }
 
@@ -24,32 +58,25 @@ if (!API_KEY) {
  * Finds the Place ID for a given query using Google Places Text Search API.
  * Uses the Vite proxy defined in vite.config.ts for CORS.
  */
-export async function findPlaceId(query: string): Promise<FindPlaceIdResult> {
-  if (!API_KEY) return { data: null, error: "Configuration error: Google API key missing." };
-  // Use relative proxy path defined in vite.config.ts
-  const url = `/api/google-places/textsearch/json?query=${encodeURIComponent(query)}&key=${API_KEY}`;
+export async function findPlaceId(query: string): Promise<PlaceSearchResult> {
+  if (!API_KEY) return { data: null, error: 'Google API Key missing' };
+  const url = `${BASE_URL}/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=place_id&key=${API_KEY}`;
 
   try {
     const response = await fetch(url);
     if (!response.ok) {
-      // Log more details on failure
-      const errorBody = await response.text();
-      const errorMsg = `Google Places Text Search failed: ${response.status} ${response.statusText}`;
-      console.error(errorMsg, errorBody);
-      return { data: null, error: errorMsg };
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    if (data.status === 'OK' && data.results && data.results.length > 0) {
-      return { data: data.results[0].place_id, error: null };
+    if (data.status === 'OK' && data.candidates && data.candidates.length > 0) {
+      return { data: data.candidates[0].place_id, error: null };
+    } else {
+      return { data: null, error: data.error_message || `No place ID found for query: ${query}` };
     }
-    // Log Google's error message if available
-    const googleError = data.error_message || data.status;
-    console.warn(`Google Places Text Search status not OK for query "${query}": ${data.status}`, googleError);
-    return { data: null, error: `Google Places error: ${googleError}` };
   } catch (error) {
-    console.error(`Error finding place ID for query "${query}":`, error);
-    const errorMsg = error instanceof Error ? error.message : "An unknown error occurred finding place ID.";
-    return { data: null, error: errorMsg };
+    console.error('Error finding place ID:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { data: null, error: `Failed to fetch place ID: ${message}` };
   }
 }
 
@@ -57,47 +84,98 @@ export async function findPlaceId(query: string): Promise<FindPlaceIdResult> {
  * Fetches detailed information for a place using its Place ID.
  * Uses the Vite proxy defined in vite.config.ts for CORS.
  */
-export async function getPlaceDetails(placeId: string): Promise<GetPlaceDetailsResult> {
-  if (!API_KEY) return { data: null, error: "Configuration error: Google API key missing." };
-  const fields = 'place_id,name,geometry,formatted_address,international_phone_number,opening_hours,website';
-  // Use relative proxy path defined in vite.config.ts
-  const url = `/api/google-places/details/json?place_id=${placeId}&fields=${fields}&key=${API_KEY}`;
+export async function getPlaceDetails(placeId: string): Promise<{ data: PlaceDetailsResult | null; error: string | null }> {
+  if (!API_KEY) return { data: null, error: 'Google API Key missing' };
+  const fields = 'name,formatted_address,international_phone_number,website,geometry,opening_hours,place_id';
+  const url = `${BASE_URL}/details/json?place_id=${placeId}&fields=${fields}&key=${API_KEY}`;
 
   try {
     const response = await fetch(url);
-     if (!response.ok) {
-       // Log more details on failure
-       const errorBody = await response.text();
-       const errorMsg = `Google Places Details failed: ${response.status} ${response.statusText}`;
-       console.error(errorMsg, errorBody);
-       return { data: null, error: errorMsg };
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
     const data = await response.json();
-    if (data.status === 'OK' && data.result) {
+    if (data.status === 'OK') {
       const result = data.result;
-      const details: Partial<Hospital> = {
-        placeId: result.place_id,
-        coordinates: result.geometry?.location ? [result.geometry.location.lng, result.geometry.location.lat] : undefined,
+      const details: PlaceDetailsResult = {
+        // Fetch the name from Google, but it will be overwritten in useHospitalData
+        name: result.name, 
         address: result.formatted_address,
         phone: result.international_phone_number,
-        openingHours: result.opening_hours ? {
-          open_now: result.opening_hours.open_now,
-          periods: result.opening_hours.periods,
-          weekday_text: result.opening_hours.weekday_text,
-        } : undefined,
-        isOpen: result.opening_hours?.open_now,
-        hours: result.opening_hours?.weekday_text?.[0]?.split(': ')?.[1],
         website: result.website,
+        placeId: result.place_id,
+        coordinates: result.geometry?.location ? [result.geometry.location.lng, result.geometry.location.lat] : undefined,
+        isOpen: result.opening_hours?.open_now,
       };
       return { data: details, error: null };
+    } else {
+      return { data: null, error: data.error_message || `Failed to get details for Place ID: ${placeId}` };
     }
-    // Log Google's error message if available
-    const googleError = data.error_message || data.status;
-    console.warn(`Google Places Details status not OK for placeId "${placeId}": ${data.status}`, googleError);
-    return { data: null, error: `Google Places error: ${googleError}` };
   } catch (error) {
-    console.error(`Error getting place details for placeId "${placeId}":`, error);
-    const errorMsg = error instanceof Error ? error.message : "An unknown error occurred getting place details.";
-    return { data: null, error: errorMsg };
+    console.error('Error fetching place details:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { data: null, error: `Failed to fetch place details: ${message}` };
+  }
+}
+
+/**
+ * Get Place Autocomplete suggestions using Google Places Autocomplete API.
+ */
+export async function getPlaceAutocomplete(input: string): Promise<AutocompleteResponse> {
+  if (!input) return { data: [], error: null }; // Return empty array if input is empty
+  if (!API_KEY) return { data: null, error: 'Google API Key missing' };
+  
+  // Bias results towards the rough viewport or user location if available? (Optional)
+  // Add types=address or types=geocode if you only want locations/addresses
+  const url = `${BASE_URL}/autocomplete/json?input=${encodeURIComponent(input)}&key=${API_KEY}`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    if (data.status === 'OK') {
+      const suggestions: AutocompleteSuggestion[] = data.predictions.map((p: any) => ({
+        description: p.description,
+        place_id: p.place_id,
+      }));
+      return { data: suggestions, error: null };
+    } else if (data.status === 'ZERO_RESULTS') {
+      return { data: [], error: null }; // No results is not an error
+    } else {
+      return { data: null, error: data.error_message || 'Failed to get autocomplete suggestions' };
+    }
+  } catch (error) {
+    console.error('Error fetching autocomplete:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { data: null, error: `Failed to fetch autocomplete: ${message}` };
+  }
+}
+
+/**
+ * Get Coordinates from Place ID using Google Places Details API.
+ */
+export async function getCoordsFromPlaceId(placeId: string): Promise<CoordinatesResponse> {
+  if (!API_KEY) return { data: null, error: 'Google API Key missing' };
+  const fields = 'geometry'; // Only fetch geometry
+  const url = `${BASE_URL}/details/json?place_id=${placeId}&fields=${fields}&key=${API_KEY}`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    const data = await response.json();
+    if (data.status === 'OK' && data.result?.geometry?.location) {
+      const coords: [number, number] = [data.result.geometry.location.lng, data.result.geometry.location.lat];
+      return { data: coords, error: null };
+    } else {
+      return { data: null, error: data.error_message || `Failed to get coordinates for Place ID: ${placeId}` };
+    }
+  } catch (error) {
+    console.error('Error fetching coordinates:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    return { data: null, error: `Failed to fetch coordinates: ${message}` };
   }
 } 

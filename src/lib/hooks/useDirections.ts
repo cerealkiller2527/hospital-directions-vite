@@ -28,9 +28,21 @@ export function useDirections(
 
   // Effect to fetch directions when inputs change
   useEffect(() => {
-    if (origin && destination?.coordinates) {
-      let isMounted = true; // Prevent state updates if component unmounts during fetch
+    let isMounted = true; // Prevent state updates if component unmounts during fetch
 
+    // Check if we have a destination but no origin
+    if (destination?.coordinates && !origin) {
+      setState({
+        allRoutes: null,
+        currentRoute: null,
+        isLoading: false,
+        error: "Please set your location to calculate directions.", // Specific error message
+      });
+      return; // Don't proceed to fetch
+    }
+
+    // Proceed if we have both origin and destination
+    if (origin && destination?.coordinates) {
       const fetchRoute = async () => {
         setState({ allRoutes: null, currentRoute: null, isLoading: true, error: null }); // Reset state before fetching
         try {
@@ -80,7 +92,8 @@ export function useDirections(
       return () => { isMounted = false; }; // Cleanup function
 
     } else {
-      // If origin or destination is invalid, clear the state
+      // If origin or destination becomes invalid (or both are null), clear the state
+      // Avoid clearing if only origin is missing (handled above)
       if (state.allRoutes !== null || state.currentRoute !== null || state.error !== null || state.isLoading !== false) {
           setState({ allRoutes: null, currentRoute: null, isLoading: false, error: null });
       }

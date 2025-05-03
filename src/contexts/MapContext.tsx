@@ -9,6 +9,9 @@ import { calculateBearing } from '@/lib/utils';
 // Define the type alias here if not already globally available
 type CustomFlyToOptions = Omit<mapboxgl.CameraOptions & mapboxgl.AnimationOptions, 'center' | 'zoom'>;
 
+// Define possible tab values
+type ActiveMapTab = "list" | "directions" | "indoor";
+
 interface MapContextType {
   selectedLocation: Hospital | null
   setSelectedLocation: Dispatch<SetStateAction<Hospital | null>>
@@ -24,6 +27,8 @@ interface MapContextType {
   setMap: Dispatch<SetStateAction<mapboxgl.Map | null>>;
   userLocation: [number, number] | null;
   setUserLocation: Dispatch<SetStateAction<[number, number] | null>>;
+  activeTab: ActiveMapTab;
+  setActiveTab: Dispatch<SetStateAction<ActiveMapTab>>;
   // Derived state for convenience
   isMinZoom: boolean
   isMaxZoom: boolean
@@ -55,6 +60,7 @@ export function MapProvider({ children }: MapProviderProps) {
   const [zoom, setZoom] = useState(DEFAULT_MAP_VIEW.zoom);
   const [map, setMap] = useState<mapboxgl.Map | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [activeTab, setActiveTab] = useState<ActiveMapTab>("list");
 
   const isMinZoom = zoom <= DEFAULT_MAP_VIEW.minZoom;
   const isMaxZoom = zoom >= DEFAULT_MAP_VIEW.maxZoom;
@@ -115,6 +121,8 @@ export function MapProvider({ children }: MapProviderProps) {
     setMap,
     userLocation,
     setUserLocation,
+    activeTab,
+    setActiveTab,
     isMinZoom,
     isMaxZoom,
     zoomIn,

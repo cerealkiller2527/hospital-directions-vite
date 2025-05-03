@@ -14,7 +14,7 @@ interface HospitalDataState {
  */
 export function useHospitalData(): HospitalDataState {
   const [state, setState] = useState<HospitalDataState>({
-    // Initialize with base data structure but empty details initially
+    // Initialize with base data structure including original names
     hospitals: baseHospitalData.map(h => ({ id: h.id, name: h.name })), 
     loading: true,
     error: null,
@@ -23,7 +23,7 @@ export function useHospitalData(): HospitalDataState {
   useEffect(() => {
     let isMounted = true;
     const fetchHospitalData = async () => {
-      let overallError: string | null = null; // Track if any fetch fails
+      let overallError: string | null = null;
 
       try {
         const enrichedHospitalsPromises = baseHospitalData.map(async (baseHospital) => {
@@ -32,7 +32,8 @@ export function useHospitalData(): HospitalDataState {
           if (placeIdResult.error) {
             console.warn(`Failed to find Place ID for ${baseHospital.name}: ${placeIdResult.error}`);
             overallError = overallError || "Partial data load: Could not find location ID for some hospitals.";
-            return { id: baseHospital.id, name: baseHospital.name }; // Return base data on ID error
+            // Return base data (id, name) on Place ID error
+            return { id: baseHospital.id, name: baseHospital.name }; 
           }
 
           if (placeIdResult.data) {
@@ -40,17 +41,20 @@ export function useHospitalData(): HospitalDataState {
             if (detailsResult.error) {
               console.warn(`Failed to fetch details for ${baseHospital.name} (Place ID: ${placeIdResult.data}): ${detailsResult.error}`);
               overallError = overallError || "Partial data load: Could not fetch details for some hospitals.";
-              return { id: baseHospital.id, name: baseHospital.name, placeId: placeIdResult.data }; // Return base + placeId
+              // Return base data (id, name) + placeId on details error
+              return { id: baseHospital.id, name: baseHospital.name, placeId: placeIdResult.data }; 
             }
             if (detailsResult.data) {
+              // Success: Merge base (id, name) + fetched details
+              // Ensure the original baseHospital.name takes precedence
               return {
-                id: baseHospital.id, 
-                name: baseHospital.name, 
-                ...detailsResult.data, 
-              }; // Success: Merge base + details
+                ...detailsResult.data, // Spread fetched details first
+                id: baseHospital.id,   // Overwrite with original ID
+                name: baseHospital.name, // Overwrite with original Name
+              }; 
             }
           }
-          // Fallback if placeIdResult.data was null (shouldn't happen if error check passes, but belts and suspenders)
+          // Fallback if placeIdResult.data was null or detailsResult.data was null
           return { id: baseHospital.id, name: baseHospital.name };
         });
 
@@ -58,11 +62,9 @@ export function useHospitalData(): HospitalDataState {
 
         if (isMounted) {
           const finalHospitals = resolvedHospitals.filter(h => h) as Hospital[];
-          // Set the overall error if one occurred, otherwise null
           setState({ hospitals: finalHospitals, loading: false, error: overallError }); 
         }
       } catch (err) {
-        // Catch unexpected errors during the Promise.all or mapping setup
         console.error("Unexpected error fetching hospital data:", err);
         if (isMounted) {
           const errorMsg = err instanceof Error ? err.message : 'Failed to load hospital data.';

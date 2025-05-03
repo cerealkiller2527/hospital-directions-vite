@@ -6,10 +6,10 @@ import type { FeatureCollection, Feature, LineString } from 'geojson';
 
 // Define congestion colors (can be moved to constants if needed elsewhere)
 const congestionColors: Record<string, string> = {
-  low: '#0059b3',      // Dark Primary Blue (Consistent with App.tsx)
+  low: '#0059b3',      // Dark Primary Blue
   moderate: '#ffa500',  // Orange
   heavy: '#ff4500',    // Orange Red
-  severe: '#b22222',    // Firebrick (Dark Red)
+  severe: '#b22222',    // Dark Red
   unknown: '#0059b3',   // Dark Primary Blue fallback
 };
 
@@ -23,41 +23,65 @@ const createRoutesGeoJSON = (routes: EnrichedRoute[] | null): FeatureCollection<
   if (!routes) {
     return { type: 'FeatureCollection', features: [] };
   }
-  
-  const allSegmentFeatures: Feature<LineString>[] = [];
+
+  const allFeatures: Feature<LineString>[] = [];
 
   routes.forEach(route => {
     const coordinates = route.geometry.coordinates;
-    const congestionLevels = route.congestion || [];
     const routeId = route.id;
     const isActive = route.isActive ?? false;
 
-    if (coordinates.length > 1) {
-      for (let i = 0; i < coordinates.length - 1; i++) {
-        const segmentCoordinates = [
-          coordinates[i],
-          coordinates[i + 1]
-        ];
-        const segmentCongestion = congestionLevels[i] || 'unknown';
+    if (isActive) {
+      /* ACTIVE route: Create segments for congestion coloring - TODO: This is a hack to get the active route to show up
+      TODO: This is a hack to get the active route to show up a proper fix would be to use google maps polyline encoding, 
+      but this is against the terms of service */
+      const congestionLevels = route.congestion || [];
+      if (coordinates.length > 1) {
+        for (let i = 0; i < coordinates.length - 1; i++) {
+          const segmentCoordinates = [
+            coordinates[i],
+            coordinates[i + 1]
+          ];
+          const segmentCongestion = congestionLevels[i] || 'unknown';
 
-        const segmentFeature: Feature<LineString> = {
+          const segmentFeature: Feature<LineString> = {
+            type: 'Feature',
+            properties: {
+              routeId: routeId,
+              isActive: isActive,
+              congestion: segmentCongestion,
+            },
+            geometry: {
+              type: 'LineString',
+              coordinates: segmentCoordinates
+            }
+          };
+          allFeatures.push(segmentFeature);
+        }
+      }
+    } else {
+      /* INACTIVE route: Create a single feature for the whole route - 
+      TODO: This is a hack to get the inactive route to show up a proper fix would be to use google maps polyline encoding, 
+      but this is against the terms of service */
+      if (coordinates.length > 1) {
+        const routeFeature: Feature<LineString> = {
           type: 'Feature',
           properties: {
             routeId: routeId,
             isActive: isActive,
-            congestion: segmentCongestion,
+            // No congestion property needed for inactive style
           },
           geometry: {
             type: 'LineString',
-            coordinates: segmentCoordinates
+            coordinates: coordinates // Use all coordinates
           }
         };
-        allSegmentFeatures.push(segmentFeature);
+        allFeatures.push(routeFeature);
       }
     }
   });
 
-  return { type: 'FeatureCollection', features: allSegmentFeatures };
+  return { type: 'FeatureCollection', features: allFeatures };
 };
 
 // Non-rendering component to manage route layers
@@ -92,13 +116,13 @@ export function RouteLayerManager({ routes, onSelectRoute }: RouteLayerManagerPr
     });
 
     // INACTIVE Casing (Invisible, wide hitbox)
-    mapInstance.addLayer({ id: inactiveCasingId, type: 'line', source: sourceId, filter: ['==', 'isActive', false], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 15, 'line-opacity': 0, 'line-color': '#000' } }, beforeId);
+    mapInstance.addLayer({ id: inactiveCasingId, type: 'line', source: sourceId, filter: ['==', 'isActive', false], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 18, 'line-opacity': 0, 'line-color': '#000' } }, beforeId);
     // ACTIVE Casing (Invisible, wide hitbox)
-    mapInstance.addLayer({ id: activeCasingId, type: 'line', source: sourceId, filter: ['==', 'isActive', true], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 15, 'line-opacity': 0, 'line-color': '#000' } }, beforeId);
+    mapInstance.addLayer({ id: activeCasingId, type: 'line', source: sourceId, filter: ['==', 'isActive', true], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 18, 'line-opacity': 0, 'line-color': '#000' } }, beforeId);
     // INACTIVE Layer (Visible, styled)
-    mapInstance.addLayer({ id: inactiveLayerId, type: 'line', source: sourceId, filter: ['==', 'isActive', false], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 8, 'line-opacity': 0.6, 'line-color': '#0059b3' } }, beforeId);
+    mapInstance.addLayer({ id: inactiveLayerId, type: 'line', source: sourceId, filter: ['==', 'isActive', false], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 10, 'line-opacity': 0.6, 'line-color': '#0059b3' } }, beforeId);
     // ACTIVE Layer (Visible, styled with traffic)
-    mapInstance.addLayer({ id: activeLayerId, type: 'line', source: sourceId, filter: ['==', 'isActive', true], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 8, 'line-opacity': 0.9, 'line-color': ['match', ['get', 'congestion'], 'low', congestionColors.low, 'moderate', congestionColors.moderate, 'heavy', congestionColors.heavy, 'severe', congestionColors.severe, congestionColors.unknown] } }, beforeId);
+    mapInstance.addLayer({ id: activeLayerId, type: 'line', source: sourceId, filter: ['==', 'isActive', true], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 10, 'line-opacity': 0.9, 'line-color': ['match', ['get', 'congestion'], 'low', congestionColors.low, 'moderate', congestionColors.moderate, 'heavy', congestionColors.heavy, 'severe', congestionColors.severe, congestionColors.unknown] } }, beforeId);
 
     initializedRef.current = true;
     console.log("RouteLayerManager: Initialized source and layers.");
@@ -133,10 +157,9 @@ export function RouteLayerManager({ routes, onSelectRoute }: RouteLayerManagerPr
       coordinates.forEach(coord => bounds.extend(coord));
       
       mapInstance.fitBounds(bounds, {
-          padding: { top: 100, bottom: 200, left: 450, right: 100 },
+          padding: { top: 100, bottom: 150, left: 460, right: 100 },
           pitch: 45, 
           bearing: mapInstance.getBearing(),
-          maxZoom: 16, 
           duration: 1500 
       });
     }

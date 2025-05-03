@@ -73,13 +73,13 @@ export function LocationPopup({ location, onViewDirections, iconName }: Location
   const getStatusStyle = () => {
     if (location.isOpen === true) {
       // Use a subtle success color that works on accent bg
-      return "bg-green-500/20 text-green-800 dark:bg-green-500/30 dark:text-green-200";
+      return "bg-green-500/20 text-green-800";
     } else if (location.isOpen === false) {
       // Use a subtle destructive color
-      return "bg-red-500/20 text-red-800 dark:bg-red-500/30 dark:text-red-200";
+      return "bg-red-500/20 text-red-800";
     }
     // Neutral/muted color
-    return "bg-slate-500/20 text-slate-800 dark:bg-slate-500/30 dark:text-slate-200";
+    return "bg-slate-500/20 text-slate-800";
   };
 
   // Render the content into the container div using createPortal

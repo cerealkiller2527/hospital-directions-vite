@@ -11,7 +11,7 @@ export function HighlightText({ text, query }: { text: string; query: string }) 
     <>
       {parts.map((part, i) =>
         regex.test(part) ? (
-          <span key={i} className="bg-yellow-100 dark:bg-yellow-900">
+          <span key={i} className="bg-yellow-100">
             {part}
           </span>
         ) : (

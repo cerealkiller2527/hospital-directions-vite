@@ -14,6 +14,7 @@ export interface EnrichedRoute {
   id: string; // Add an ID for React keys, can use index or route ID from API if available
   directions: Directions;
   geometry: LineString;
+  duration: number; // ADD: Duration including traffic (seconds)
   congestion?: string[]; // Array of congestion levels per segment
   duration_typical?: number; // Duration based on typical traffic (seconds)
   isActive?: boolean; // Flag to indicate if this is the currently displayed route
@@ -78,6 +79,7 @@ export async function getDirections(
         id: `route-${index}`, // Simple ID based on index
         directions,
         geometry,
+        duration: route.duration, // ADD assignment for numeric duration (seconds)
         congestion,
         duration_typical: route.duration_typical,
         isActive: index === 0 // Mark the first route as active initially
