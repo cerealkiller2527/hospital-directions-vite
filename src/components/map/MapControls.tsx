@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useMap } from "@/contexts/MapContext";
 import { DEFAULT_MAP_VIEW } from "@/lib/mapbox";
 import { useGeolocation } from "@/lib/hooks/useGeolocation";
+import { DEFAULT_FLY_TO_OPTIONS } from "@/lib/constants";
 
 export function MapControls() {
   const { 
@@ -19,7 +20,10 @@ export function MapControls() {
 
   const handleMyLocationClick = () => {
     if (userLocation) {
-      flyTo(userLocation, DEFAULT_MAP_VIEW.maxZoom - 2, { pitch: 60, speed: 1.5 });
+      flyTo(userLocation, DEFAULT_MAP_VIEW.maxZoom - 2, { 
+        pitch: DEFAULT_FLY_TO_OPTIONS.pitch, 
+        speed: DEFAULT_FLY_TO_OPTIONS.speed 
+      });
     } else {
       getCurrentPosition();
     }

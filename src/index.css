@@ -58,56 +58,9 @@
   }
 }
 
-/* RE-ADD Custom Marker Animation */
+/* Custom Marker Animations */
 @layer utilities {
-  /* Custom scrollbar styling - Applied GLOBALLY to Radix Viewports */
-  [data-radix-scroll-area-viewport] {
-    scrollbar-width: thin; /* Firefox */
-    scrollbar-color: rgba(0, 0, 0, 0.2) transparent; /* Firefox */
-  }
-
-  /* Target webkit scrollbars *within* the Viewport */
-  [data-radix-scroll-area-viewport]::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  [data-radix-scroll-area-viewport]::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.15);
-    border-radius: 20px;
-  }
-
-  [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 0, 0, 0.25);
-  }
-
-  /* Add custom low-profile scrollbar class that can be applied anywhere */
-  .lowprofile-scrollbar {
-    scrollbar-width: thin; /* Firefox */
-    scrollbar-color: rgba(0, 0, 0, 0.2) transparent; /* Firefox */
-  }
-
-  .lowprofile-scrollbar::-webkit-scrollbar {
-    width: 4px;
-  }
-
-  .lowprofile-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .lowprofile-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(0, 0, 0, 0.15);
-    border-radius: 20px;
-  }
-
-  .lowprofile-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(0, 0, 0, 0.25);
-  }
-
-  /* Marker Animation */
+  /* Marker Pulse Animation */
   @keyframes marker-pulse {
     0%, 100% {
       transform: scale(1);
@@ -123,41 +76,35 @@
     animation: marker-pulse 1.6s ease-in-out infinite;
   }
 
-  /* NEW: Moving Glow Animation */
+  /* Marker Glow Animation */
   @keyframes moving-glow {
     0% {
-      /* Start slightly expanded and visible - Increased size/opacity */
       box-shadow: 0 0 0 5px hsl(var(--primary) / 0.7);
       opacity: 0.7;
     }
     70%, 100% {
-      /* Expand shadow significantly and fade out - Increased final size */
       box-shadow: 0 0 0 20px hsl(var(--primary) / 0);
       opacity: 0;
     }
   }
 
-  /* Class to apply the glow via pseudo-element */
   .marker-icon-container-glow::after {
     content: "";
     position: absolute;
-    /* Position slightly outside the parent bounds */
     inset: -3px;
-    border-radius: inherit; /* Inherit parent's border radius */
-    /* Apply the animation */
+    border-radius: inherit;
     animation: moving-glow 1.4s infinite ease-out;
-    /* Ensure it's behind the icon */
     z-index: -1;
-    pointer-events: none; /* Don't intercept clicks */
+    pointer-events: none;
   }
 
-  /* NEW: Jump Animation */
+  /* Marker Jump Animation */
   @keyframes marker-jump {
     0%, 100% {
       transform: translateY(0);
     }
     50% {
-      transform: translateY(-7px); /* Adjust jump height */
+      transform: translateY(-7px);
     }
   }
 

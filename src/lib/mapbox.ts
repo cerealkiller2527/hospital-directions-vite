@@ -25,7 +25,7 @@ export const MAP_STYLES = {
 export const DEFAULT_MAP_VIEW = {
   center: [-71.1496, 42.3263], // Boston area
   zoom: 12,
-  minZoom: 0,
+  minZoom: 8,
   maxZoom: 22,
   pitch: 45,
   bearing: 0

@@ -29,6 +29,7 @@ import { TransportModeSelector } from './TransportModeSelector';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { useSpeechSynthesis } from '@/lib/hooks/useSpeechSynthesis';
 
 interface DirectionsCardProps {
   hospital: Hospital | null;
@@ -58,97 +59,40 @@ export function DirectionsCard({
   const { transportMode, setActiveTab } = useMap();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
-  // --- State for Speech Synthesis ---
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentStepIndex, setCurrentStepIndex] = useState(-1);
-  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [selectedVoiceURI, setSelectedVoiceURI] = useState<string | undefined>(undefined);
-  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null); // Ref to hold the current utterance
+  // --- State for Speech Synthesis --- MOVED TO HOOK
+  // const [isPlaying, setIsPlaying] = useState(false);
+  // const [currentStepIndex, setCurrentStepIndex] = useState(-1);
+  // const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  // const [selectedVoiceURI, setSelectedVoiceURI] = useState<string | undefined>(undefined);
+  // const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null); 
 
   // Derive currentRoute and its directions
   const currentRoute = useMemo(() => allRoutes?.find(r => r.isActive), [allRoutes]);
   const currentDirections = currentRoute?.directions ?? null;
   const directionSteps = currentDirections?.steps ?? [];
 
+  // --- Use the Speech Synthesis Hook ---
+  const {
+      isPlaying,
+      currentStepIndex,
+      availableVoices,
+      selectedVoiceURI,
+      setSelectedVoiceURI, // Get the setter
+      togglePlayPause,     // Get the toggle function
+      stopSpeech           // Get the stop function (optional but good practice)
+  } = useSpeechSynthesis(directionSteps);
+
   const estimatedTime = currentDirections?.duration ?? "-";
   const distance = currentDirections?.distance ?? "-";
   const hospitalName = hospital?.name ?? "Selected Hospital";
 
-  // --- Effect to get available voices ---
-  useEffect(() => {
-    const loadVoices = () => {
-      const voices = window.speechSynthesis.getVoices();
-      // Filter for voices that have a language code (often more reliable)
-      // You could add more filtering here (e.g., specific languages)
-      setAvailableVoices(voices.filter(v => v.lang));
-    };
+  // --- Effect to get available voices --- MOVED TO HOOK
+  // useEffect(() => { ... }, []);
 
-    // Voices might load asynchronously
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
+  // --- Effect to handle speech playback based on state --- MOVED TO HOOK
+  // useEffect(() => { ... }, [isPlaying, currentStepIndex, selectedVoiceURI, directionSteps, availableVoices]);
 
-    // Cleanup: remove listener and cancel any speech on unmount
-    return () => {
-      window.speechSynthesis.onvoiceschanged = null;
-      window.speechSynthesis.cancel();
-    };
-  }, []);
-
-  // --- Effect to handle speech playback based on state ---
-  useEffect(() => {
-    if (isPlaying && currentStepIndex >= 0 && currentStepIndex < directionSteps.length) {
-      // Cancel previous utterance if any (safety measure)
-      window.speechSynthesis.cancel(); 
-      
-      const step = directionSteps[currentStepIndex];
-      const utterance = new SpeechSynthesisUtterance(step.instruction);
-      utteranceRef.current = utterance; // Store ref
-
-      // Find and set the selected voice
-      const selectedVoice = availableVoices.find(v => v.voiceURI === selectedVoiceURI);
-      if (selectedVoice) {
-        utterance.voice = selectedVoice;
-      } else {
-        console.warn("Selected voice not found, using default.");
-      }
-
-      // Handle end of speech for this step
-      utterance.onend = () => {
-        setCurrentStepIndex(prevIndex => prevIndex + 1);
-      };
-
-      // Handle errors
-      utterance.onerror = (event) => {
-        console.error("Speech synthesis error:", event.error);
-        toast.error(`Speech error: ${event.error}`, { icon: <AlertTriangle className="h-4 w-4" /> });
-        setIsPlaying(false);
-        setCurrentStepIndex(-1);
-        utteranceRef.current = null;
-      };
-
-      // Speak the utterance
-      window.speechSynthesis.speak(utterance);
-
-    } else if (isPlaying && currentStepIndex >= directionSteps.length) {
-       // Reached the end of directions
-       setIsPlaying(false);
-       setCurrentStepIndex(-1);
-       utteranceRef.current = null;
-       toast.info("Finished reading directions.", { icon: <Info className="h-4 w-4" /> });
-    }
-    
-    // Cleanup: Cancel speech if isPlaying becomes false or dependencies change
-    return () => {
-        if (utteranceRef.current && !isPlaying) { 
-            // Only cancel if we are explicitly stopping, not just moving to next step
-            window.speechSynthesis.cancel();
-            utteranceRef.current = null;
-        }
-    }
-  // Depend on step index, playing state, selected voice, steps array itself, and available voices
-  }, [isPlaying, currentStepIndex, selectedVoiceURI, directionSteps, availableVoices]);
-
-  // Effect for error toasts (keep)
+  // Effect for error toasts (keep, as it's related to directions fetching error)
   useEffect(() => {
     if (error) {
       const toastId = `directions-error-${error.toLowerCase().replace(/\s+/g, '-')}`;
@@ -171,33 +115,34 @@ export function DirectionsCard({
     setIsConfirmOpen(false); // Close the dialog
   };
 
-  // --- Audio Button Click Handler ---
+  // --- Audio Button Click Handler --- Use hook's function
   const handleAudioToggle = () => {
-    if (isPlaying) {
-      window.speechSynthesis.cancel(); // Stop immediately
-      setIsPlaying(false);
-      setCurrentStepIndex(-1);
-      utteranceRef.current = null;
-    } else {
-      if (directionSteps.length > 0) {
-        setCurrentStepIndex(0); // Start from the first step
-        setIsPlaying(true);
-      } else {
-          toast.info("No directions steps available to read.", { icon: <Info className="h-4 w-4" /> });
-      }
-    }
+    togglePlayPause();
+    // if (isPlaying) {
+    //   window.speechSynthesis.cancel(); // Stop immediately
+    //   setIsPlaying(false);
+    //   setCurrentStepIndex(-1);
+    //   utteranceRef.current = null;
+    // } else {
+    //   if (directionSteps.length > 0) {
+    //     setCurrentStepIndex(0); // Start from the first step
+    //     setIsPlaying(true);
+    //   } else {
+    //       toast.info("No directions steps available to read.", { icon: <Info className="h-4 w-4" /> });
+    //   }
+    // }
   };
 
-  // --- Voice Selection Handler ---
+  // --- Voice Selection Handler --- Use hook's setter
   const handleVoiceChange = (value: string) => {
     setSelectedVoiceURI(value);
-    // If playing, stop and restart with the new voice (optional, could just apply to next utterance)
-    if (isPlaying) {
-        window.speechSynthesis.cancel();
-        // Restart immediately by setting index (useEffect will pick it up)
-        // Note: This might feel abrupt. Could alternatively just let the current one finish.
-        setCurrentStepIndex(prev => prev); 
-    }
+    // // If playing, stop and restart with the new voice (optional, could just apply to next utterance)
+    // if (isPlaying) {
+    //     window.speechSynthesis.cancel();
+    //     // Restart immediately by setting index (useEffect will pick it up)
+    //     // Note: This might feel abrupt. Could alternatively just let the current one finish.
+    //     setCurrentStepIndex(prev => prev); 
+    // }
   };
 
   if (isLoading) {
@@ -310,23 +255,32 @@ export function DirectionsCard({
           variant="outline" 
           size="sm" 
           className="flex items-center gap-1 border-primary border-2 h-7 text-xs"
+          // Use hook handler
           onClick={handleAudioToggle}
+          // Use hook state
           disabled={isLoading || !!error || !currentDirections || directionSteps.length === 0}
         >
+          {/* Use hook state */}
           {isPlaying ? <Square className="h-3 w-3" /> : <Volume2 className="h-3 w-3" />}
+          {/* Use hook state */}
           {isPlaying ? "Stop" : "Audio"}
         </Button>
 
         {/* Voice Selector Dropdown */}
         <Select 
+          // Use hook handler
           onValueChange={handleVoiceChange} 
+          // Use hook state
           value={selectedVoiceURI}
+          // Use hook state
           disabled={availableVoices.length === 0}
         >
           <SelectTrigger className="h-7 text-xs flex-grow min-w-0 w-auto px-2">
-            <SelectValue placeholder="Default Voice" />
+            {/* Use hook state */}
+            <SelectValue placeholder={availableVoices.length > 0 ? "Default Voice" : "No voices available"} />
           </SelectTrigger>
           <SelectContent>
+            {/* Use hook state */}
             {availableVoices.map((voice) => (
               <SelectItem key={voice.voiceURI} value={voice.voiceURI} className="text-xs">
                 {voice.name} ({voice.lang})

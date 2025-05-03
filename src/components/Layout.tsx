@@ -2,12 +2,11 @@
 
 import { useState, useEffect, useRef, type ReactNode } from "react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Menu, X, Search, Bell } from "lucide-react"
+import { Menu, X, Bell } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Z_INDEX } from "@/lib/constants"
+import { Z_INDEX, LAYOUT_DIMENSIONS, DEFAULT_AVATAR_PATH, HOSPITAL_LOGO_PATH } from "@/lib/constants"
 
 // ==================== APP HEADER ====================
 
@@ -19,7 +18,7 @@ interface AppHeaderProps {
 export function AppHeader({ isSidebarOpen, onToggleSidebar }: AppHeaderProps) {
   return (
     <header className="fixed top-0 left-0 right-0 bg-background border-b" style={{ zIndex: Z_INDEX.header }}>
-      <div className="container flex h-16 items-center justify-between px-4">
+      <div className="container flex h-16 items-center justify-between px-4" style={{ height: `${LAYOUT_DIMENSIONS.HEADER_HEIGHT}px` }}>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
             {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -36,7 +35,7 @@ export function AppHeader({ isSidebarOpen, onToggleSidebar }: AppHeaderProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full" aria-label="User menu">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src="/vibrant-street-market.png" alt="User avatar" />
+                  <AvatarImage src={DEFAULT_AVATAR_PATH} alt="User avatar" />
                   <AvatarFallback>U</AvatarFallback>
                 </Avatar>
               </Button>
@@ -57,7 +56,7 @@ export function AppHeader({ isSidebarOpen, onToggleSidebar }: AppHeaderProps) {
 function HospitalLogo({ className }: { className?: string }) {
   return (
     <a href="/" className={cn("flex items-center gap-2 group", className)}>
-      <img src="/bwh-logo-icon.svg" alt="BWH Logo" className="h-12 w-auto" />
+      <img src={HOSPITAL_LOGO_PATH} alt="BWH Logo" className="h-12 w-auto" />
       <div className="flex flex-col">
         <span className="text-lg font-bold leading-tight text-primary group-hover:text-primary/90 transition-colors">
           Brigham and Women's
@@ -95,10 +94,10 @@ export function SidebarContainer({ children, isOpen, className }: SidebarContain
     const updateHeight = () => {
       if (!innerRef.current || !contentRef.current) return;
       const windowHeight = window.innerHeight;
-      const headerHeight = 64; // fixed header
-      const outerPadding = 32; // 1rem top + bottom
+      const headerHeight = LAYOUT_DIMENSIONS.HEADER_HEIGHT; // fixed header
+      const outerPadding = 32; // 1rem top + bottom -> convert to use padding constant if available
       const maxHeight = windowHeight - headerHeight - outerPadding;
-      const contentHeight = contentRef.current.scrollHeight + 24; // include inner padding 0.75*2
+      const contentHeight = contentRef.current.scrollHeight + 24; // include inner padding 0.75*2 -> use padding constant if available
       if (contentHeight > maxHeight) {
         innerRef.current.style.height = `${maxHeight}px`;
       } else {
@@ -122,9 +121,27 @@ export function SidebarContainer({ children, isOpen, className }: SidebarContain
   }, [isOpen, children]);
 
   return (
-    <div className={cn("fixed top-16 left-0 z-30 w-[420px]","transition-all duration-300 ease-in-out",!isOpen && "-translate-x-full",className)} style={{padding:"1rem"}} ref={outerRef}>
-      <div ref={innerRef} className="w-full bg-white rounded-xl shadow-xl border border-gray-100 flex flex-col overflow-hidden" style={{maxHeight:`calc(100vh - 64px - 2rem)`}}>
-        <div ref={contentRef} className="w-full flex-1 flex flex-col overflow-hidden" style={{padding:"0.75rem"}}>
+    <div className={cn(
+        "fixed top-16 left-0 z-30",
+        "transition-all ease-in-out",
+        !isOpen && "-translate-x-full",
+        className
+      )}
+      style={{
+        top: `${LAYOUT_DIMENSIONS.HEADER_HEIGHT}px`, 
+        width: `${LAYOUT_DIMENSIONS.SIDEBAR_WIDTH}px`, 
+        zIndex: Z_INDEX.sidebar,
+        padding: LAYOUT_DIMENSIONS.SIDEBAR_PADDING_Y, // Use Y padding for overall outer padding
+        transitionDuration: `${LAYOUT_DIMENSIONS.SIDEBAR_TRANSITION_MS}ms`,
+        maxHeight: `calc(100vh - ${LAYOUT_DIMENSIONS.HEADER_HEIGHT}px - ${LAYOUT_DIMENSIONS.SIDEBAR_PADDING_Y} * 2)` // Ensure max height respects padding
+      }}
+      ref={outerRef}>
+      <div ref={innerRef} className="w-full bg-white rounded-xl shadow-xl border border-gray-100 flex flex-col overflow-hidden" 
+        style={{
+            maxHeight: `calc(100vh - ${LAYOUT_DIMENSIONS.HEADER_HEIGHT}px - (${LAYOUT_DIMENSIONS.SIDEBAR_PADDING_Y} + ${LAYOUT_DIMENSIONS.SIDEBAR_PADDING_Y}))`
+        }}>
+        <div ref={contentRef} className="w-full flex-1 flex flex-col overflow-hidden" 
+          style={{padding: LAYOUT_DIMENSIONS.SIDEBAR_PADDING_X}}>
           {children}
         </div>
       </div>

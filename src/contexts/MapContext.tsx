@@ -5,6 +5,8 @@ import type { Hospital, TransportMode } from "@/types/hospital"
 import type mapboxgl from 'mapbox-gl';
 import { DEFAULT_MAP_VIEW } from '@/lib/mapbox';
 import { calculateBearing } from '@/lib/utils';
+// Import constants
+import { DEFAULT_FLY_TO_OPTIONS, CHESTNUT_HILL_VIEW_PARAMS, CHESTNUT_HILL_LOCATION_ID } from '@/lib/constants'; 
 
 // Define the type alias here if not already globally available
 type CustomFlyToOptions = Omit<mapboxgl.CameraOptions & mapboxgl.AnimationOptions, 'center' | 'zoom'>;
@@ -79,18 +81,24 @@ export function MapProvider({ children }: MapProviderProps) {
     let finalCenter: [number, number] = center;
     let finalZoom: number = zoomLevel ?? map.getZoom();
     let finalOptions: mapboxgl.CameraOptions & mapboxgl.AnimationOptions = {
-      pitch: options?.pitch ?? 70,
-      speed: options?.speed ?? 1.8,
-      curve: options?.curve ?? 1.42,
-      bearing: options?.bearing ?? map.getBearing(),
-      ...options 
+      // Apply defaults from constants
+      pitch: options?.pitch ?? DEFAULT_FLY_TO_OPTIONS.pitch,
+      speed: options?.speed ?? DEFAULT_FLY_TO_OPTIONS.speed,
+      curve: options?.curve ?? DEFAULT_FLY_TO_OPTIONS.curve,
+      bearing: options?.bearing ?? map.getBearing(), // Bearing calculated below if needed
+      ...options // Spread other provided options
     };
 
     // Special Case for Chestnut Hill (ID 1)
-    if (hospitalId === 1) {
-      finalCenter = [-71.167169, 42.323224];
-      finalZoom = 19.56;
-      finalOptions = { ...finalOptions, pitch: 71.00, bearing: 16.00 }; 
+    // Use constants for Chestnut Hill
+    if (hospitalId === CHESTNUT_HILL_LOCATION_ID) {
+      finalCenter = CHESTNUT_HILL_VIEW_PARAMS.coordinates;
+      finalZoom = CHESTNUT_HILL_VIEW_PARAMS.zoom;
+      finalOptions = { 
+        ...finalOptions, 
+        pitch: CHESTNUT_HILL_VIEW_PARAMS.pitch, 
+        bearing: CHESTNUT_HILL_VIEW_PARAMS.bearing 
+      }; 
     } else {
       // Bearing Calculation for non-special cases
       if (userLocation && options?.bearing === undefined) { 

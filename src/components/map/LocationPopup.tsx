@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { icons } from '@/lib/icons';
 import { Hospital as HospitalIcon } from 'lucide-react';
+import { MAP_POPUP_OPTIONS } from '@/lib/constants';
 
 interface LocationPopupProps {
   location: Hospital;
@@ -44,8 +45,8 @@ export function LocationPopup({ location, onViewDirections, iconName }: Location
         popupRef.current = new mapboxgl.Popup({ 
             closeButton: false,
             closeOnClick: false,
-            offset: 25,
-            maxWidth: '280px'
+            offset: MAP_POPUP_OPTIONS.offset,
+            maxWidth: MAP_POPUP_OPTIONS.maxWidth
         })
         .setLngLat(location.coordinates as [number, number])
         .setDOMContent(container)
@@ -69,47 +70,52 @@ export function LocationPopup({ location, onViewDirections, iconName }: Location
   // Ensure location change triggers repositioning/recreation if needed
   }, [map, location, container, setSelectedLocation]);
 
-  // Adjusted status styles for bg-accent background
+  // Adjusted status styles for bg-background (white)
   const getStatusStyle = () => {
     if (location.isOpen === true) {
-      // Use a subtle success color that works on accent bg
-      return "bg-green-500/20 text-green-800";
+      // Use light green for open status on white bg
+      return "bg-green-100 text-green-800";
     } else if (location.isOpen === false) {
-      // Use a subtle destructive color
-      return "bg-red-500/20 text-red-800";
+      // Use light red for closed status
+      return "bg-red-100 text-red-800";
     }
-    // Neutral/muted color
-    return "bg-slate-500/20 text-slate-800";
+    // Use light gray for unknown status
+    return "bg-gray-100 text-gray-800";
   };
 
   // Render the content into the container div using createPortal
   return createPortal(
-    // Use accent background and foreground
-    <div className="bg-accent text-accent-foreground rounded-md shadow-md font-sans">
-      <div className="p-3 space-y-3">
+    // Use background (white) and remove shadow, adjust padding/spacing
+    <div className="bg-background text-foreground rounded-md font-sans">
+      <div className="p-2 space-y-1"> {/* Reduced padding from p-2.5 to p-2 */} 
         {/* Header */}
         <div className="space-y-1">
           <div className="flex items-center gap-1.5">
-            <IconComponent className="h-3.5 w-3.5 text-accent-foreground flex-shrink-0" />
+            {/* Use primary color for icon */}
+            <IconComponent className="h-3.5 w-3.5 text-primary flex-shrink-0" />
             <h4 className="font-semibold text-sm leading-tight">{location.name}</h4>
           </div>
           <div className="flex items-start gap-1.5">
-            <MapPin className="h-3 w-3 text-accent-foreground/80 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-accent-foreground/80 break-words leading-tight">
+            {/* Use muted color for icon and text */}
+            <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-muted-foreground break-words leading-tight">
               {location.address || 'Address not available'}
             </p>
           </div>
         </div>
         
         {/* Details */}
-        <div className="grid gap-2 text-xs">
+        <div className="grid gap-1.5 text-xs"> {/* Reduced gap */} 
           <div className="flex items-center gap-1.5">
-            <Phone className="h-3 w-3 text-accent-foreground/80 flex-shrink-0" />
-            <span className="truncate text-accent-foreground/80">{location.phone || 'Phone not available'}</span>
+            {/* Use muted color for icon and text */}
+            <Phone className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+            <span className="truncate text-muted-foreground">{location.phone || 'Phone not available'}</span>
           </div>
           
           <div className="flex items-center gap-1.5">
-            <Clock className="h-3 w-3 text-accent-foreground/80 flex-shrink-0" />
+            {/* Use muted color for icon */}
+            <Clock className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+            {/* Status Badge - uses getStatusStyle */}
             <div className={cn("flex items-center justify-center px-1.5 py-0.5 rounded-full text-center text-xs font-medium", getStatusStyle())}>
               <span>{location.isOpen === true ? 'Open Now' : location.isOpen === false ? 'Closed' : 'Hours vary'}</span>
             </div>
@@ -117,12 +123,14 @@ export function LocationPopup({ location, onViewDirections, iconName }: Location
           
           {location.website && (
             <div className="flex items-center gap-1.5 min-w-0">
-              <Globe className="h-3 w-3 text-accent-foreground/80 flex-shrink-0" />
+              {/* Use muted color for icon */}
+              <Globe className="h-3 w-3 text-muted-foreground flex-shrink-0" />
               <a 
                 href={location.website} 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="text-accent-foreground/90 hover:text-accent-foreground underline underline-offset-2 truncate"
+                // Use primary color for link
+                className="text-primary hover:text-primary/80 underline underline-offset-2 truncate"
                 title={location.website}
               >
                 {location.website.replace(/^https?:\/\//, '')}
@@ -131,8 +139,8 @@ export function LocationPopup({ location, onViewDirections, iconName }: Location
           )}
         </div>
         
-        {/* Action Button - Use default (primary) variant */}
-        <div className="pt-0.5">
+        {/* Action Button - Keep default variant for now */}
+        <div className="pt-0.5"> {/* Reduced top padding */}
           <Button 
             variant="default"
             size="sm" 

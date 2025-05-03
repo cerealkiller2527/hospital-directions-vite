@@ -1,10 +1,13 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { EARTH_RADIUS_MILES } from "@/lib/constants"
 
+// Combine class names
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Create debounced function
 export function debounce<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void {
   let timeout: ReturnType<typeof setTimeout> | null = null
   
@@ -14,12 +17,7 @@ export function debounce<T extends (...args: any[]) => any>(func: T, wait: numbe
   }
 }
 
-/**
- * Calculate the bearing between two points in degrees
- * @param start [longitude, latitude] of start point
- * @param end [longitude, latitude] of end point
- * @returns Bearing in degrees from start to end
- */
+// Calculate bearing between coordinates
 export function calculateBearing(start: [number, number], end: [number, number]): number {
   const [startLng, startLat] = start;
   const [endLng, endLat] = end;
@@ -38,22 +36,16 @@ export function calculateBearing(start: [number, number], end: [number, number])
   return bearing;
 }
 
-/**
- * Calculate the great-circle distance between two points (lat/lon) in miles.
- * Uses the Haversine formula.
- * @param point1 [longitude, latitude] of the first point
- * @param point2 [longitude, latitude] of the second point
- * @returns Distance in miles, or null if input is invalid.
- */
+// Calculate distance between coordinates
 export function calculateDistance(point1: [number, number] | null | undefined, point2: [number, number] | null | undefined): number | null {
   if (!point1 || !point2) {
-    return null; // Cannot calculate distance if either point is missing
+    return null;
   }
 
   const [lon1, lat1] = point1;
   const [lon2, lat2] = point2;
 
-  const R = 3958.8; // Radius of the Earth in miles
+  const R = EARTH_RADIUS_MILES;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a =
@@ -66,11 +58,7 @@ export function calculateDistance(point1: [number, number] | null | undefined, p
   return distance;
 }
 
-/**
- * Formats a duration in seconds into a string like "X min" or "<1 min".
- * @param seconds The duration in seconds.
- * @returns Formatted string duration.
- */
+// Format duration from seconds
 export function formatDurationFromSeconds(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined || seconds < 0) {
     return "-- min";

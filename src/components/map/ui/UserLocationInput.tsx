@@ -11,6 +11,7 @@ import { useMap } from '@/contexts/MapContext';
 import { getPlaceAutocomplete, getCoordsFromPlaceId, type AutocompleteSuggestion } from '@/lib/services/google-places-service';
 import { debounce } from '@/lib/utils';
 import { toast } from "sonner";
+import { AUTOCOMPLETE_DEBOUNCE_WAIT, AUTOCOMPLETE_MIN_CHARS, UI_PLACEHOLDERS } from '@/lib/constants';
 
 interface UserLocationInputProps {
   getCurrentPosition: () => void; // Function to trigger geolocation
@@ -33,7 +34,7 @@ export function UserLocationInput({ getCurrentPosition, isGeoLoading, className 
   // --- Debounced Autocomplete Fetch ---
   const fetchSuggestions = useCallback(
     debounce(async (query: string) => {
-      if (query.trim().length < 2) { // Only search if query is >= 2 chars
+      if (query.trim().length < AUTOCOMPLETE_MIN_CHARS) { // Only search if query is >= N chars
         setSuggestions([]);
         setIsLoading(false);
         setIsPopoverOpen(false);
@@ -50,7 +51,7 @@ export function UserLocationInput({ getCurrentPosition, isGeoLoading, className 
         setIsPopoverOpen((result.data || []).length > 0 && document.activeElement === inputRef.current);
       }
       setIsLoading(false);
-    }, 300),
+    }, AUTOCOMPLETE_DEBOUNCE_WAIT),
     []
   );
 
@@ -58,9 +59,9 @@ export function UserLocationInput({ getCurrentPosition, isGeoLoading, className 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
-    if (value.trim().length >= 2) {
+    if (value.trim().length >= AUTOCOMPLETE_MIN_CHARS) {
         fetchSuggestions(value); // Trigger debounced fetch
-        setIsPopoverOpen(true); // Open popover on type if length > 1
+        setIsPopoverOpen(true); // Open popover on type if length > N
     } else {
         setSuggestions([]);
         setIsPopoverOpen(false); // Close if input cleared or too short
@@ -122,11 +123,11 @@ export function UserLocationInput({ getCurrentPosition, isGeoLoading, className 
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
                     <Input
                       ref={inputRef}
-                      placeholder="Enter your location"
+                      placeholder={UI_PLACEHOLDERS.LOCATION_SEARCH}
                       value={inputValue}
                       onChange={handleInputChange}
                       onFocus={() => {
-                        if (suggestions.length > 0 || inputValue.trim().length >= 2) {
+                        if (suggestions.length > 0 || inputValue.trim().length >= AUTOCOMPLETE_MIN_CHARS) {
                            setIsPopoverOpen(true);
                         }
                       }}
@@ -160,7 +161,7 @@ export function UserLocationInput({ getCurrentPosition, isGeoLoading, className 
                             </div>
                         ) : (
                         <> 
-                          {suggestions.length === 0 && !isLoading && inputValue.trim().length >= 2 && (
+                          {suggestions.length === 0 && !isLoading && inputValue.trim().length >= AUTOCOMPLETE_MIN_CHARS && (
                              <CommandEmpty>No locations found</CommandEmpty>
                           )}
                           {suggestions.length > 0 && (

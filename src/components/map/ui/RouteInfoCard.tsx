@@ -4,29 +4,12 @@ import { Route, Clock, TrafficCone, Dot } from 'lucide-react'; // Added Dot for 
 import type { EnrichedRoute } from '@/lib/services/directions';
 import { formatDurationFromSeconds } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import { CONGESTION_COLORS, CONGESTION_TEXT_COLORS } from '@/lib/constants'; // Import constants
 
 interface RouteInfoCardProps {
   route: EnrichedRoute | null;
   className?: string;
 }
-
-// Define congestion colors locally (or move to constants)
-const congestionColors: Record<string, string> = {
-  low: '#66cdaa',      // Medium Aquamarine (Greenish)
-  moderate: '#ffa500',  // Orange
-  heavy: '#ff4500',    // Orange Red
-  severe: '#b22222',  // Firebrick (Dark Red)
-  unknown: '#a0aec0', // Gray (fallback for missing/unknown)
-};
-
-// Define Tailwind text color classes corresponding to the hex colors for the summary
-const congestionTextColors: Record<string, string> = {
-  low: 'text-green-600',      
-  moderate: 'text-orange-500',
-  heavy: 'text-red-600',    
-  severe: 'text-red-800', 
-  unknown: 'text-gray-500', 
-};
 
 export function RouteInfoCard({ route, className }: RouteInfoCardProps) {
   if (!route) {
@@ -129,9 +112,9 @@ export function RouteInfoCard({ route, className }: RouteInfoCardProps) {
                    {(Object.keys(congestionSummary) as Array<keyof typeof congestionSummary>).map(level =>
                       congestionSummary[level] > 0 && (
                           <div key={level} className="flex items-center">
-                               <span className="w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: congestionColors[level] }}></span>
-                               <span className={cn("capitalize", congestionTextColors[level])}>{level}:</span>
-                               <span className={cn("ml-auto font-medium", congestionTextColors[level])}>{congestionSummary[level]}%</span>
+                               <span className="w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: CONGESTION_COLORS[level] }}></span>
+                               <span className={cn("capitalize", CONGESTION_TEXT_COLORS[level])}>{level}:</span>
+                               <span className={cn("ml-auto font-medium", CONGESTION_TEXT_COLORS[level])}>{congestionSummary[level]}%</span>
                           </div>
                       )
                    )}

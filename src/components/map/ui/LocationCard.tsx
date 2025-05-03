@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge"; // Import Badge
 import { cn } from "@/lib/utils"
 import type { Hospital } from "@/types/hospital"
 import { useMap } from "@/contexts/MapContext" // Corrected context import path
-import { HighlightText } from "@/components/shared/HighlightText"
 import { icons } from "@/lib/icons" // Import icons map
 import { Hospital as HospitalIcon } from "lucide-react" // Import fallback icon
 
@@ -18,7 +17,6 @@ interface LocationCardProps {
   location: Hospital
   isSelected?: boolean
   onClick?: (hospital: Hospital) => void
-  searchQuery?: string
   // Modified onViewDirections: It now expects the function passed from HospitalList/AppContent
   // which already knows the specific hospital.
   onViewDirections?: () => void
@@ -32,7 +30,6 @@ export function LocationCard({
   location,
   isSelected = false,
   onClick,
-  searchQuery = "",
   onViewDirections, // Keep this name consistent with HospitalList usage
   className,
   iconName,
@@ -121,7 +118,7 @@ export function LocationCard({
           <div className="flex-1 min-w-0">
             <div className="flex justify-between items-center gap-1">
               <h3 className={cn("font-semibold text-sm truncate transition-colors flex-shrink min-w-0 mr-1", isHovered && "text-primary")}>
-                {searchQuery ? <HighlightText text={location.name} query={searchQuery} /> : location.name}
+                {location.name}
               </h3>
               {/* Always render Badge, use outline variant with custom text/border */}
               <Badge
@@ -136,11 +133,7 @@ export function LocationCard({
             <div className="flex items-center text-xs text-muted-foreground mt-0.5">
               <MapPin className="mr-1 h-3 w-3 flex-shrink-0" />
               <span className="truncate">
-                {searchQuery ? (
-                  <HighlightText text={shortenAddress(location.address)} query={searchQuery} />
-                ) : (
-                  shortenAddress(location.address)
-                )}
+                {shortenAddress(location.address)}
               </span>
             </div>
           </div>

@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 import type { Hospital } from '@/types/hospital';
+import { GOOGLE_PLACES_FIELDS } from '@/lib/constants'; // Import constants
 
 // Define structured return types
 interface FindPlaceIdResult {
@@ -60,7 +61,7 @@ if (!API_KEY) {
  */
 export async function findPlaceId(query: string): Promise<PlaceSearchResult> {
   if (!API_KEY) return { data: null, error: 'Google API Key missing' };
-  const url = `${BASE_URL}/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=place_id&key=${API_KEY}`;
+  const url = `${BASE_URL}/findplacefromtext/json?input=${encodeURIComponent(query)}&inputtype=textquery&fields=${GOOGLE_PLACES_FIELDS.PLACE_ID}&key=${API_KEY}`;
 
   try {
     const response = await fetch(url);
@@ -86,7 +87,7 @@ export async function findPlaceId(query: string): Promise<PlaceSearchResult> {
  */
 export async function getPlaceDetails(placeId: string): Promise<{ data: PlaceDetailsResult | null; error: string | null }> {
   if (!API_KEY) return { data: null, error: 'Google API Key missing' };
-  const fields = 'name,formatted_address,international_phone_number,website,geometry,opening_hours,place_id';
+  const fields = GOOGLE_PLACES_FIELDS.DETAILS;
   const url = `${BASE_URL}/details/json?place_id=${placeId}&fields=${fields}&key=${API_KEY}`;
 
   try {
@@ -158,7 +159,7 @@ export async function getPlaceAutocomplete(input: string): Promise<AutocompleteR
  */
 export async function getCoordsFromPlaceId(placeId: string): Promise<CoordinatesResponse> {
   if (!API_KEY) return { data: null, error: 'Google API Key missing' };
-  const fields = 'geometry'; // Only fetch geometry
+  const fields = GOOGLE_PLACES_FIELDS.GEOMETRY; // Only fetch geometry
   const url = `${BASE_URL}/details/json?place_id=${placeId}&fields=${fields}&key=${API_KEY}`;
 
   try {

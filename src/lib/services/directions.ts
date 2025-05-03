@@ -1,6 +1,7 @@
 import { MAPBOX_ACCESS_TOKEN } from '@/lib/mapbox';
 import type { Directions, TransportMode, DirectionStep } from '@/types/hospital';
 import type { Feature, LineString } from 'geojson';
+import { MAPBOX_DIRECTIONS_ANNOTATIONS, CONVERSION_FACTORS } from '@/lib/constants';
 
 // Map local transport modes to Mapbox Directions API profiles
 const transportModeToProfile: Record<TransportMode, string> = {
@@ -38,7 +39,7 @@ export async function getDirections(
   const profile = transportModeToProfile[mode];
   const coordinates = `${origin.join(',')};${destination.join(',')}`;
   // Add alternatives=true and annotations
-  const annotations = 'duration,distance,congestion';
+  const annotations = MAPBOX_DIRECTIONS_ANNOTATIONS;
   const url = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${coordinates}?steps=true&geometries=geojson&overview=full&alternatives=true&annotations=${annotations}&access_token=${MAPBOX_ACCESS_TOKEN}`;
 
   try {
@@ -63,13 +64,13 @@ export async function getDirections(
       
       const steps: DirectionStep[] = leg.steps.map((step: any) => ({
         instruction: step.maneuver.instruction,
-        distance: `${(step.distance * 0.000621371).toFixed(1)} mi`,
+        distance: `${(step.distance * CONVERSION_FACTORS.METERS_TO_MILES).toFixed(1)} mi`,
         duration: `${Math.round(step.duration / 60)} min`,
       }));
 
       const directions: Directions = {
         steps: steps,
-        distance: `${(route.distance * 0.000621371).toFixed(1)} mi`,
+        distance: `${(route.distance * CONVERSION_FACTORS.METERS_TO_MILES).toFixed(1)} mi`,
         duration: `${Math.round((route.duration_typical ?? route.duration) / 60)} min`,
       };
 

@@ -1,5 +1,6 @@
 import mapboxgl from 'mapbox-gl';
 import { MAPBOX_ACCESS_TOKEN } from '@/lib/mapbox';
+import { MAPBOX_SUPPORT_REASONS } from '@/lib/constants';
 
 // Set the access token globally
 mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
@@ -23,7 +24,7 @@ export function getMapboxSupportStatus(): { supported: boolean; reason?: string 
   if (!window.WebGLRenderingContext) {
     return { 
       supported: false, 
-      reason: "Your browser doesn't support WebGL, which is required for Mapbox GL."
+      reason: MAPBOX_SUPPORT_REASONS.NO_WEBGL
     };
   }
   
@@ -33,13 +34,13 @@ export function getMapboxSupportStatus(): { supported: boolean; reason?: string 
   if (!context) {
     return { 
       supported: false, 
-      reason: "Your browser supports WebGL, but it may be disabled or unavailable."
+      reason: MAPBOX_SUPPORT_REASONS.WEBGL_DISABLED
     };
   }
   
   return { 
     supported: false, 
-    reason: "Mapbox GL isn't supported by your browser for an unknown reason."
+    reason: MAPBOX_SUPPORT_REASONS.UNKNOWN
   };
 }
 

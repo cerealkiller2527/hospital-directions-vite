@@ -1,21 +1,16 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
-import mapboxgl from 'mapbox-gl'; // Import mapboxgl
-import 'mapbox-gl/dist/mapbox-gl.css'; // Import Mapbox CSS
+import mapboxgl from 'mapbox-gl' // Mapbox GL JS library
+import 'mapbox-gl/dist/mapbox-gl.css' // Mapbox GL JS styles
 import App from "./App.tsx"
-// import TestApp from "./TestApp.tsx" // Remove TestApp import
 import "./index.css"
-// Remove ThemeProvider import
-// import { ThemeProvider } from "./components/theme-provider"
+import { MAPBOX_WORKER_COUNT } from './lib/constants' // Worker count configuration
 
-// Increase worker count before initializing any map
-mapboxgl.workerCount = 4;
+// Configure Mapbox GL JS worker count for better performance
+mapboxgl.workerCount = MAPBOX_WORKER_COUNT;
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    {/* Remove ThemeProvider wrapper */}
-    {/* <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme"> */}
-      <App />
-    {/* </ThemeProvider> */}
+    <App />
   </React.StrictMode>,
 )

@@ -3,16 +3,9 @@ import mapboxgl from 'mapbox-gl';
 import { useMap } from '@/contexts/MapContext';
 import type { EnrichedRoute } from '@/lib/services/directions';
 import type { FeatureCollection, Feature, LineString } from 'geojson';
+import { MAP_LAYER_IDS, MAP_LAYER_BEFORE_ID, ROUTE_FIT_BOUNDS_OPTIONS, CONGESTION_COLORS } from '@/lib/constants'; // Import constants
 
-// Define congestion colors (can be moved to constants if needed elsewhere)
-const congestionColors: Record<string, string> = {
-  low: '#0059b3',      // Dark Primary Blue
-  moderate: '#ffa500',  // Orange
-  heavy: '#ff4500',    // Orange Red
-  severe: '#b22222',    // Dark Red
-  unknown: '#0059b3',   // Dark Primary Blue fallback
-};
-
+// Re-add the props interface definition
 interface RouteLayerManagerProps {
   routes: EnrichedRoute[] | null;
   onSelectRoute: (route: EnrichedRoute) => void;
@@ -90,14 +83,15 @@ export function RouteLayerManager({ routes, onSelectRoute }: RouteLayerManagerPr
   const initializedRef = useRef(false); // Track if layers/source have been added
   const hoveredRouteIdRef = useRef<string | null>(null); // Track hover state for paint updates
 
-  const sourceId = 'routes-source';
-  const inactiveCasingId = 'routes-inactive-casing';
-  const activeCasingId = 'routes-active-casing';
-  const inactiveLayerId = 'routes-inactive';
-  const activeLayerId = 'routes-active';
+  // Use constants for IDs
+  const sourceId = MAP_LAYER_IDS.SOURCE;
+  const inactiveCasingId = MAP_LAYER_IDS.INACTIVE_CASING;
+  const activeCasingId = MAP_LAYER_IDS.ACTIVE_CASING;
+  const inactiveLayerId = MAP_LAYER_IDS.INACTIVE_ROUTE;
+  const activeLayerId = MAP_LAYER_IDS.ACTIVE_ROUTE;
   const layerIds = [inactiveCasingId, activeCasingId, inactiveLayerId, activeLayerId];
   const interactionLayerIds = [inactiveCasingId, activeCasingId]; // Layers for mouse events
-  const beforeId = 'road-label'; // Layer to insert before
+  const beforeId = MAP_LAYER_BEFORE_ID; // Layer to insert before
 
   // Effect to Initialize Source and Layers
   useEffect(() => {
@@ -122,7 +116,7 @@ export function RouteLayerManager({ routes, onSelectRoute }: RouteLayerManagerPr
     // INACTIVE Layer (Visible, styled)
     mapInstance.addLayer({ id: inactiveLayerId, type: 'line', source: sourceId, filter: ['==', 'isActive', false], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 10, 'line-opacity': 0.6, 'line-color': '#0059b3' } }, beforeId);
     // ACTIVE Layer (Visible, styled with traffic)
-    mapInstance.addLayer({ id: activeLayerId, type: 'line', source: sourceId, filter: ['==', 'isActive', true], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 10, 'line-opacity': 0.9, 'line-color': ['match', ['get', 'congestion'], 'low', congestionColors.low, 'moderate', congestionColors.moderate, 'heavy', congestionColors.heavy, 'severe', congestionColors.severe, congestionColors.unknown] } }, beforeId);
+    mapInstance.addLayer({ id: activeLayerId, type: 'line', source: sourceId, filter: ['==', 'isActive', true], layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-width': 10, 'line-opacity': 0.9, 'line-color': ['match', ['get', 'congestion'], 'low', CONGESTION_COLORS.low, 'moderate', CONGESTION_COLORS.moderate, 'heavy', CONGESTION_COLORS.heavy, 'severe', CONGESTION_COLORS.severe, CONGESTION_COLORS.unknown] } }, beforeId);
 
     initializedRef.current = true;
     console.log("RouteLayerManager: Initialized source and layers.");
@@ -150,17 +144,18 @@ export function RouteLayerManager({ routes, onSelectRoute }: RouteLayerManagerPr
     console.log("RouteLayerManager: Updated source data.");
 
     // Fit Bounds to the ACTIVE route
-    const activeRoute = routes?.find(r => r.isActive);
+    const activeRoute = routes?.find((r: EnrichedRoute) => r.isActive);
     if (activeRoute?.geometry?.coordinates && activeRoute.geometry.coordinates.length > 0) {
       const coordinates = activeRoute.geometry.coordinates as mapboxgl.LngLatLike[];
       const bounds = new mapboxgl.LngLatBounds(coordinates[0], coordinates[0]);
       coordinates.forEach(coord => bounds.extend(coord));
       
       mapInstance.fitBounds(bounds, {
-          padding: { top: 100, bottom: 150, left: 460, right: 100 },
-          pitch: 45, 
+          // Use constants for fitBounds options
+          padding: ROUTE_FIT_BOUNDS_OPTIONS.padding,
+          pitch: ROUTE_FIT_BOUNDS_OPTIONS.pitch,
           bearing: mapInstance.getBearing(),
-          duration: 1500 
+          duration: ROUTE_FIT_BOUNDS_OPTIONS.duration,
       });
     }
   }, [mapInstance, routes]); // Depend on map and routes data
@@ -191,7 +186,7 @@ export function RouteLayerManager({ routes, onSelectRoute }: RouteLayerManagerPr
     const handleClick = (e: mapboxgl.MapLayerMouseEvent) => {
       if (e.features && e.features.length > 0) {
         const clickedRouteId = e.features[0].properties?.routeId;
-        const clickedRoute = routes?.find(r => r.id === clickedRouteId);
+        const clickedRoute = routes?.find((r: EnrichedRoute) => r.id === clickedRouteId);
         if (clickedRoute) {
           onSelectRoute(clickedRoute);
         }

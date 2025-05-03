@@ -10,6 +10,8 @@ import { icons } from '@/lib/icons'; // Import centralized map
 import { Hospital as HospitalIcon, Info } from 'lucide-react'; // Keep fallback import, add Info icon
 import { calculateBearing } from '@/lib/utils';
 import { toast } from 'sonner'; // Import toast
+// Import constants
+import { DEFAULT_FLY_TO_OPTIONS, HOSPITAL_CUSTOM_VIEWS } from '@/lib/constants'; 
 
 // Define the combined type for flyTo options
 type CustomFlyToOptions = Omit<mapboxgl.CameraOptions & mapboxgl.AnimationOptions, 'center'>;
@@ -74,72 +76,89 @@ export function LocationMarker({ hospital, iconName }: LocationMarkerProps) {
     const currentElement = markerElementRef.current;
     if (!map || !currentElement || !hospital) return;
 
+    // --- Helper function for List Tab click logic ---
+    const handleListTabClick = (clickedHospital: Hospital) => {
+        setSelectedLocation(clickedHospital); // Always select in list view
+
+        const isPopupCurrentlyOpen = popupLocation?.id === clickedHospital.id;
+        if (isPopupCurrentlyOpen) {
+            setPopupLocation(null); // Close popup if already open for this marker
+        } else {
+            setPopupLocation(clickedHospital); // Open popup for the clicked marker
+            
+            // --- Prevent flyTo if this marker is already the selected one --- 
+            if (selectedLocation?.id !== clickedHospital.id) {
+              // Fly to the marker only when opening its popup AND it wasn't already selected
+              
+              // Get custom view options or fallback to defaults
+              const customView = HOSPITAL_CUSTOM_VIEWS[clickedHospital.id] || {};
+              const defaultOptions = DEFAULT_FLY_TO_OPTIONS; // For easier access
+
+              let flyToOptions: CustomFlyToOptions & { center: [number, number]; zoom: number } = {
+                // Base options from defaults
+                pitch: defaultOptions.pitch,
+                speed: defaultOptions.speed,
+                curve: defaultOptions.curve,
+                bearing: map?.getBearing() ?? defaultOptions.bearing,
+                zoom: defaultOptions.zoom,
+                center: clickedHospital.coordinates as [number, number], // Default center to hospital coords
+                
+                // Override with custom view settings if they exist
+                ...customView, 
+              };
+              
+              // Use custom coordinates if provided, otherwise stick to hospital's
+              if (customView.coordinates) {
+                  flyToOptions.center = customView.coordinates;
+              }
+
+              // Override bearing only if not explicitly set in custom view
+              if (userLocation && customView.bearing === undefined) {
+                try {
+                  flyToOptions.bearing = calculateBearing(userLocation, flyToOptions.center);
+                } catch (error) {
+                  console.error("Error calculating bearing:", error);
+                }
+              }
+              
+              // Call flyTo with the constructed options
+              flyTo(flyToOptions.center, flyToOptions.zoom, flyToOptions, clickedHospital.id);
+
+            } // --- End of flyTo condition ---
+        }
+    };
+
+    // --- Helper function for Directions Tab click logic ---
+    const handleDirectionsTabClick = (clickedHospital: Hospital) => {
+        const isCurrentlySelected = selectedLocation?.id === clickedHospital.id;
+        const isPopupCurrentlyOpen = popupLocation?.id === clickedHospital.id;
+
+        if (isCurrentlySelected) {
+            // Clicked the marker that is *already* the selected destination
+            if (isPopupCurrentlyOpen) {
+                setPopupLocation(null); // Close the popup
+            } else {
+                setPopupLocation(clickedHospital); // Open the popup
+            }
+        } else {
+            // Clicked a *different* marker while directions are active
+            setSelectedLocation(clickedHospital); // Switch the destination
+            setPopupLocation(null);      // Ensure any other popup is closed
+            toast.info(`Calculating directions to ${clickedHospital.name}`, {
+               icon: <Info className="h-4 w-4" />,
+            });
+        }
+    };
+
+    // --- Main click handler --- 
     const handleClick = (e: MouseEvent) => {
       e.stopPropagation(); 
-      setAnimatingMarkerId(null);
+      setAnimatingMarkerId(null); // Stop any animation on click
 
-      const isCurrentlySelected = selectedLocation?.id === hospital.id;
-      const isPopupCurrentlyOpen = popupLocation?.id === hospital.id;
-  
       if (activeTab === 'directions') {
-          // --- Directions Tab Logic ---
-          if (isCurrentlySelected) {
-              // Clicked the marker that is *already* the selected destination
-              if (isPopupCurrentlyOpen) {
-                  setPopupLocation(null); // Close the popup
-              } else {
-                  setPopupLocation(hospital); // Open the popup
-              }
-              // No toast, no setSelectedLocation call needed
-          } else {
-              // Clicked a *different* marker while directions are active
-              setSelectedLocation(hospital); // Switch the destination
-              setPopupLocation(null);      // Ensure any other popup is closed
-              // Show toast only when switching
-              toast.info(`Calculating directions to ${hospital.name}`, {
-                 icon: <Info className="h-4 w-4" />,
-              });
-              // No flyTo needed, RouteLayerManager handles bounds
-          }
+          handleDirectionsTabClick(hospital);
       } else {
-          // --- List Tab Logic ---
-          setSelectedLocation(hospital); // Always select the clicked marker in list view
-  
-          if (isPopupCurrentlyOpen) {
-               // Clicked the marker whose popup is already open
-               setPopupLocation(null); // Close the popup
-          } else {
-               // Clicked a marker whose popup is closed (or a different marker)
-               setPopupLocation(hospital); // Open the popup for the clicked marker
-               // Fly to the marker only when opening its popup
-               let flyToOptions: CustomFlyToOptions = {
-                  pitch: 70, 
-                  speed: 1.8,
-                  bearing: map?.getBearing() ?? 0, 
-                  zoom: DEFAULT_MAP_VIEW.maxZoom // Use maxZoom for marker clicks in list view
-                };
-               // ... (rest of flyTo calculation logic) ...
-               if (hospital.id === 1) {
-                  flyToOptions = {
-                    ...flyToOptions,
-                    zoom: 19.56, 
-                    pitch: 71.00,
-                    bearing: 16.00,
-                  };
-                  flyTo([-71.167169, 42.323224], flyToOptions.zoom, flyToOptions, hospital.id);
-                } else { 
-                  let calculatedBearing = flyToOptions.bearing;
-                  if (userLocation && hospital.coordinates) {
-                    try {
-                      calculatedBearing = calculateBearing(userLocation, hospital.coordinates as [number, number]);
-                    } catch (error) {
-                      console.error("Error calculating bearing:", error);
-                    }
-                  }
-                  flyToOptions.bearing = calculatedBearing;
-                  flyTo(hospital.coordinates as [number, number], flyToOptions.zoom, flyToOptions, hospital.id); 
-                }
-          }
+          handleListTabClick(hospital);
       }
     };
 
@@ -153,7 +172,6 @@ export function LocationMarker({ hospital, iconName }: LocationMarkerProps) {
   }, [map, hospital.id, hospital.coordinates, userLocation, popupLocation?.id, selectedLocation?.id, flyTo, setAnimatingMarkerId, setSelectedLocation, setPopupLocation, activeTab]);
 
   const isSelected = selectedLocation?.id === hospital.id;
-  const shouldAnimate = animatingMarkerId === hospital.id;
 
   return (
     <div ref={markerElementRef} className="marker-dom-element cursor-pointer" style={{ pointerEvents: 'auto' }}>
@@ -177,9 +195,9 @@ export function LocationMarker({ hospital, iconName }: LocationMarkerProps) {
           {/* Render the selected icon */}
           <IconComponent className="h-4 w-4" />
         </div>
-        {/* Tip */}
+        {/* Tip - Adjust bottom offset to close the gap */}
         <div className={cn(
-          `absolute -bottom-[8.5px] left-1/2 -translate-x-1/2 w-0 h-0`,
+          `absolute -bottom-[12px] left-1/2 -translate-x-1/2 w-0 h-0`,
           `border-l-[6px] border-l-transparent`,
           `border-t-[9px]`,
           `border-r-[6px] border-r-transparent`,
