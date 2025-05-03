@@ -5,14 +5,9 @@ import type { Hospital } from "@/types/hospital"
 
 /**
  * Custom hook for hospital search functionality
+ * Accepts the full list and the current search query
  */
-export function useHospitalSearch(hospitals: Hospital[]) {
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const handleSearchChange = useCallback((query: string) => {
-    setSearchQuery(query);
-  }, []);
-
+export function useHospitalSearch(hospitals: Hospital[], searchQuery: string) {
   const filteredHospitals = useMemo(() => {
     if (!searchQuery.trim()) return hospitals;
 
@@ -21,15 +16,11 @@ export function useHospitalSearch(hospitals: Hospital[]) {
     return hospitals.filter(
       (hospital) =>
         hospital.name.toLowerCase().includes(query) ||
-        hospital.address.toLowerCase().includes(query)
-        // Removed specialty filtering
-        // || hospital.specialties.some((specialty) => specialty.toLowerCase().includes(query)),
+        (hospital.address && hospital.address.toLowerCase().includes(query)) // Add check for address existence
     );
   }, [hospitals, searchQuery]);
 
   return {
-    searchQuery,
-    setSearchQuery: handleSearchChange,
     filteredHospitals,
   };
 } 

@@ -7,23 +7,8 @@ import type { Hospital } from '@/types/hospital';
 import { cn } from '@/lib/utils';
 import { DEFAULT_MAP_VIEW } from '@/lib/mapbox'; // Import DEFAULT_MAP_VIEW
 import * as turf from '@turf/turf'; // Import turf
-// Import necessary icons
-import {
-  Hospital as HospitalIcon,
-  Stethoscope,
-  HeartPulse,
-  Activity,
-  SquareUserRound,
-} from "lucide-react";
-
-// Map icon names to components
-const icons: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
-  hospital: HospitalIcon,
-  stethoscope: Stethoscope,
-  'heart-pulse': HeartPulse,
-  activity: Activity,
-  'square-user-round': SquareUserRound,
-};
+import { icons } from '@/lib/icons'; // Import centralized map
+import { Hospital as HospitalIcon } from 'lucide-react'; // Keep fallback import
 
 // Define the combined type for flyTo options
 type CustomFlyToOptions = Omit<mapboxgl.CameraOptions & mapboxgl.AnimationOptions, 'center'>;
@@ -112,8 +97,8 @@ export function LocationMarker({ hospital, iconName }: LocationMarkerProps) {
             pitch: 71.00,
             bearing: 16.00,
           };
-          // Use the specific center coordinate for Chestnut Hill flyTo
-          flyTo([-71.167169, 42.323224], flyToOptions.zoom, flyToOptions);
+          // Pass hospital ID
+          flyTo([-71.167169, 42.323224], flyToOptions.zoom, flyToOptions, hospital.id);
         } else { 
           let calculatedBearing = flyToOptions.bearing; // Start with default/current
           if (userLocation && hospital.coordinates) {
@@ -126,7 +111,8 @@ export function LocationMarker({ hospital, iconName }: LocationMarkerProps) {
             }
           }
           flyToOptions.bearing = calculatedBearing; // Update bearing
-          flyTo(hospital.coordinates as [number, number], flyToOptions.zoom, flyToOptions); 
+          // Pass hospital ID
+          flyTo(hospital.coordinates as [number, number], flyToOptions.zoom, flyToOptions, hospital.id); 
         }
       }
     };

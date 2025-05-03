@@ -21,57 +21,58 @@ export function useHospitalData(): HospitalDataState {
   });
 
   useEffect(() => {
-    let isMounted = true; // Prevent state update on unmounted component
-
+    let isMounted = true;
     const fetchHospitalData = async () => {
-      // Keep initial loading state until all fetches complete
-      // setState(prev => ({ ...prev, loading: true, error: null })); 
+      let overallError: string | null = null; // Track if any fetch fails
+
       try {
         const enrichedHospitalsPromises = baseHospitalData.map(async (baseHospital) => {
-          const placeId = await findPlaceId(baseHospital.queryHint);
-          if (placeId) {
-            const details = await getPlaceDetails(placeId);
-            if (details) {
-              // Merge base info (id, original name) with fetched details
+          const placeIdResult = await findPlaceId(baseHospital.queryHint);
+          
+          if (placeIdResult.error) {
+            console.warn(`Failed to find Place ID for ${baseHospital.name}: ${placeIdResult.error}`);
+            overallError = overallError || "Partial data load: Could not find location ID for some hospitals.";
+            return { id: baseHospital.id, name: baseHospital.name }; // Return base data on ID error
+          }
+
+          if (placeIdResult.data) {
+            const detailsResult = await getPlaceDetails(placeIdResult.data);
+            if (detailsResult.error) {
+              console.warn(`Failed to fetch details for ${baseHospital.name} (Place ID: ${placeIdResult.data}): ${detailsResult.error}`);
+              overallError = overallError || "Partial data load: Could not fetch details for some hospitals.";
+              return { id: baseHospital.id, name: baseHospital.name, placeId: placeIdResult.data }; // Return base + placeId
+            }
+            if (detailsResult.data) {
               return {
                 id: baseHospital.id, 
                 name: baseHospital.name, 
-                ...details, 
-              };
-            } else {
-               console.warn(`Could not fetch details for ${baseHospital.name} (Place ID: ${placeId})`);
-               // Return base data + placeId if details fetch failed
-               return { id: baseHospital.id, name: baseHospital.name, placeId };
+                ...detailsResult.data, 
+              }; // Success: Merge base + details
             }
-          } else {
-             console.warn(`Could not find Place ID for ${baseHospital.name} using query: ${baseHospital.queryHint}`);
-             // Return only base data if Place ID not found
-             return { id: baseHospital.id, name: baseHospital.name };
           }
+          // Fallback if placeIdResult.data was null (shouldn't happen if error check passes, but belts and suspenders)
+          return { id: baseHospital.id, name: baseHospital.name };
         });
 
-        // Wait for all promises to resolve
         const resolvedHospitals = await Promise.all(enrichedHospitalsPromises);
 
         if (isMounted) {
-          // Filter out any potential null/undefined results if needed, though current logic returns objects
           const finalHospitals = resolvedHospitals.filter(h => h) as Hospital[];
-          setState({ hospitals: finalHospitals, loading: false, error: null });
+          // Set the overall error if one occurred, otherwise null
+          setState({ hospitals: finalHospitals, loading: false, error: overallError }); 
         }
       } catch (err) {
-        console.error("Error fetching hospital data:", err);
+        // Catch unexpected errors during the Promise.all or mapping setup
+        console.error("Unexpected error fetching hospital data:", err);
         if (isMounted) {
-          setState(prev => ({ ...prev, loading: false, error: 'Failed to load hospital data.' }));
+          const errorMsg = err instanceof Error ? err.message : 'Failed to load hospital data.';
+          setState(prev => ({ ...prev, loading: false, error: errorMsg }));
         }
       }
     };
-
     fetchHospitalData();
-
-    return () => {
-      isMounted = false; // Cleanup function to set isMounted to false
-    };
-  }, []); // Fetch only once on mount
+    return () => { isMounted = false; };
+  }, []);
 
   return state;
 } 

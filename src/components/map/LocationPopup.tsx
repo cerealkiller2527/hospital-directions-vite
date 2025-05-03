@@ -5,25 +5,11 @@ import { createPortal } from 'react-dom';
 import mapboxgl from 'mapbox-gl';
 import { useMap } from '@/contexts/MapContext';
 import type { Hospital } from '@/types/hospital';
-import {
-  MapPin, Phone, Globe, Clock, Navigation, Building2,
-  Hospital as HospitalIcon,
-  Stethoscope,
-  HeartPulse,
-  Activity,
-  SquareUserRound,
-} from "lucide-react";
+import { MapPin, Phone, Globe, Clock, Navigation } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-
-// Duplicate or import the icon mapping
-const icons: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
-  hospital: HospitalIcon,
-  stethoscope: Stethoscope,
-  'heart-pulse': HeartPulse,
-  activity: Activity,
-  'square-user-round': SquareUserRound,
-};
+import { icons } from '@/lib/icons';
+import { Hospital as HospitalIcon } from 'lucide-react';
 
 interface LocationPopupProps {
   location: Hospital;

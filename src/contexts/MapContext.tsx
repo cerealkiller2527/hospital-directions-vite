@@ -4,6 +4,10 @@ import { createContext, useContext, useState, useCallback, type ReactNode, Dispa
 import type { Hospital, TransportMode } from "@/types/hospital"
 import type mapboxgl from 'mapbox-gl';
 import { DEFAULT_MAP_VIEW } from '@/lib/mapbox';
+import * as turf from '@turf/turf'; // Import turf for bearing calculation
+
+// Define the type alias here if not already globally available
+type CustomFlyToOptions = Omit<mapboxgl.CameraOptions & mapboxgl.AnimationOptions, 'center' | 'zoom'>;
 
 interface MapContextType {
   selectedLocation: Hospital | null
@@ -23,10 +27,10 @@ interface MapContextType {
   // Derived state for convenience
   isMinZoom: boolean
   isMaxZoom: boolean
-  // Methods (implemented in provider)
+  // Methods
   zoomIn: () => void
   zoomOut: () => void
-  flyTo: (center: [number, number], zoomLevel?: number, options?: Omit<mapboxgl.CameraOptions & mapboxgl.AnimationOptions, 'center' | 'zoom'>) => void
+  flyTo: (center: [number, number], zoomLevel?: number, options?: CustomFlyToOptions, hospitalId?: number) => void
 }
 
 const MapContext = createContext<MapContextType | undefined>(undefined)
@@ -63,21 +67,45 @@ export function MapProvider({ children }: MapProviderProps) {
     map?.zoomOut();
   }, [map]);
 
-  const flyTo = useCallback((center: [number, number], zoomLevel?: number, options?: Omit<mapboxgl.CameraOptions & mapboxgl.AnimationOptions, 'center' | 'zoom'>) => {
+  const flyTo = useCallback((center: [number, number], zoomLevel?: number, options?: CustomFlyToOptions, hospitalId?: number) => {
     if (!map) return;
     
-    map.flyTo({ 
-      center, 
-      zoom: zoomLevel ?? map.getZoom(), 
-      // Sensible defaults for 3D flyby, can be overridden by options
-      pitch: options?.pitch ?? 60, 
-      bearing: options?.bearing ?? map.getBearing(), 
-      speed: options?.speed ?? 1.2, 
-      curve: options?.curve ?? 1.42, 
-      // Spread any other provided options
+    let finalCenter: [number, number] = center;
+    let finalZoom: number = zoomLevel ?? map.getZoom();
+    let finalOptions: mapboxgl.CameraOptions & mapboxgl.AnimationOptions = {
+      pitch: options?.pitch ?? 70,
+      speed: options?.speed ?? 1.8,
+      curve: options?.curve ?? 1.42,
+      bearing: options?.bearing ?? map.getBearing(),
       ...options 
+    };
+
+    // Special Case for Chestnut Hill (ID 1)
+    if (hospitalId === 1) {
+      finalCenter = [-71.167169, 42.323224];
+      finalZoom = 19.56;
+      finalOptions = { ...finalOptions, pitch: 71.00, bearing: 16.00 }; 
+    } else {
+      // Bearing Calculation for non-special cases
+      if (userLocation && options?.bearing === undefined) { 
+         try {
+          const startPoint = turf.point(userLocation);
+          const endPoint = turf.point(finalCenter);
+          finalOptions.bearing = turf.bearing(startPoint, endPoint);
+        } catch (error) {
+          console.error("Error calculating bearing:", error);
+          finalOptions.bearing = map.getBearing();
+        }
+      }
+    }
+
+    map.flyTo({ 
+      center: finalCenter, 
+      zoom: finalZoom,
+      ...finalOptions
     });
-  }, [map]);
+
+  }, [map, userLocation]); // Include userLocation dependency
 
   const value = {
     selectedLocation,

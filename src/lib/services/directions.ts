@@ -19,14 +19,20 @@ export interface EnrichedRoute {
   isActive?: boolean; // Flag to indicate if this is the currently displayed route
 }
 
+// Define the structured return type
+interface GetDirectionsResult {
+  data: EnrichedRoute[] | null;
+  error: string | null;
+}
+
 export async function getDirections(
   origin: [number, number], // [lng, lat]
   destination: [number, number], // [lng, lat]
   mode: TransportMode
-): Promise<EnrichedRoute[] | null> { // Return array of enriched routes or null
+): Promise<GetDirectionsResult> { // Return structured result
   if (!MAPBOX_ACCESS_TOKEN) {
     console.error("Mapbox Access Token is missing.");
-    return null;
+    return { data: null, error: "Configuration error: Mapbox token missing." };
   }
   const profile = transportModeToProfile[mode];
   const coordinates = `${origin.join(',')};${destination.join(',')}`;
@@ -38,14 +44,15 @@ export async function getDirections(
     const response = await fetch(url);
     if (!response.ok) {
       const errorBody = await response.text();
-      console.error(`Mapbox Directions API error: ${response.status} ${response.statusText}`, errorBody);
-      return null;
+      const errorMsg = `Mapbox Directions API error: ${response.status} ${response.statusText}`;
+      console.error(errorMsg, errorBody);
+      return { data: null, error: errorMsg };
     }
     const data = await response.json();
 
     if (!data.routes || data.routes.length === 0) {
       console.warn("Mapbox Directions API: No routes found.");
-      return null;
+      return { data: null, error: "No routes found for the selected mode." };
     }
 
     // Map over all routes
@@ -77,10 +84,12 @@ export async function getDirections(
       };
     });
 
-    return enrichedRoutes;
+    // Success case
+    return { data: enrichedRoutes, error: null };
 
   } catch (error) {
     console.error("Error fetching directions:", error);
-    return null;
+    const errorMsg = error instanceof Error ? error.message : "An unknown error occurred fetching directions.";
+    return { data: null, error: errorMsg };
   }
 } 

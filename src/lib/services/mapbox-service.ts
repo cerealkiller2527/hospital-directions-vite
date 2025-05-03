@@ -56,13 +56,16 @@ export function initializeMap(
   }
   
   try {
-    return new mapboxgl.Map({
+    console.log("Attempting to initialize Mapbox map...");
+    const map = new mapboxgl.Map({
       container,
       style: options.style,
       center: options.center,
       zoom: options.zoom,
       ...options
     });
+    console.log("Mapbox map initialized successfully.");
+    return map;
   } catch (error) {
     console.error('Error initializing Mapbox GL:', error);
     return null;
