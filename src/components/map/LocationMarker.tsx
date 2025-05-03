@@ -6,9 +6,9 @@ import { useMap } from '@/contexts/MapContext';
 import type { Hospital } from '@/types/hospital';
 import { cn } from '@/lib/utils';
 import { DEFAULT_MAP_VIEW } from '@/lib/mapbox'; // Import DEFAULT_MAP_VIEW
-import * as turf from '@turf/turf'; // Import turf
 import { icons } from '@/lib/icons'; // Import centralized map
 import { Hospital as HospitalIcon } from 'lucide-react'; // Keep fallback import
+import { calculateBearing } from '@/lib/utils';
 
 // Define the combined type for flyTo options
 type CustomFlyToOptions = Omit<mapboxgl.CameraOptions & mapboxgl.AnimationOptions, 'center'>;
@@ -103,9 +103,7 @@ export function LocationMarker({ hospital, iconName }: LocationMarkerProps) {
           let calculatedBearing = flyToOptions.bearing; // Start with default/current
           if (userLocation && hospital.coordinates) {
             try {
-              const startPoint = turf.point(userLocation);
-              const endPoint = turf.point(hospital.coordinates as [number, number]);
-              calculatedBearing = turf.bearing(startPoint, endPoint);
+              calculatedBearing = calculateBearing(userLocation, hospital.coordinates as [number, number]);
             } catch (error) {
               console.error("Error calculating bearing:", error);
             }

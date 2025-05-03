@@ -26,8 +26,6 @@ import { Z_INDEX } from "@/lib/constants";
 import mapboxgl from 'mapbox-gl';
 // Import GeoJSON types if available (assuming @types/geojson is installed)
 import type { FeatureCollection, Feature, LineString, Point } from 'geojson'; 
-// Import turf helpers for distance calculation
-import * as turf from '@turf/turf';
 // Import specific icons needed for mapping 
 import {
   Hospital as HospitalIcon, 
@@ -41,6 +39,7 @@ import {
 import { useMapInitialization } from "@/lib/hooks/useMapInitialization"; // Import the new hook
 import { RouteLayerManager } from "@/components/map/RouteLayerManager"; // Import the manager
 import { useDirections } from "@/lib/hooks/useDirections"; // Import the directions hook
+import { calculateBearing } from '@/lib/utils';
 
 // Mock directions for now until API integration
 const mockDirections: Directions = {
@@ -238,10 +237,8 @@ function AppContent() {
           flyTo([-71.167169, 42.323224], flyToOptions.zoom, flyToOptions, hospital.id);
         } else {
           if (userLocation) { 
-             try {
-              const startPoint = turf.point(userLocation);
-              const endPoint = turf.point(hospital.coordinates as [number, number]);
-              flyToOptions.bearing = turf.bearing(startPoint, endPoint);
+            try {
+              flyToOptions.bearing = calculateBearing(userLocation, hospital.coordinates as [number, number]);
             } catch (error) {
               console.error("Error calculating bearing:", error);
             }

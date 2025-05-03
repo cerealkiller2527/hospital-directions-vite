@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useCallback, type ReactNode, Dispa
 import type { Hospital, TransportMode } from "@/types/hospital"
 import type mapboxgl from 'mapbox-gl';
 import { DEFAULT_MAP_VIEW } from '@/lib/mapbox';
-import * as turf from '@turf/turf'; // Import turf for bearing calculation
+import { calculateBearing } from '@/lib/utils';
 
 // Define the type alias here if not already globally available
 type CustomFlyToOptions = Omit<mapboxgl.CameraOptions & mapboxgl.AnimationOptions, 'center' | 'zoom'>;
@@ -88,14 +88,7 @@ export function MapProvider({ children }: MapProviderProps) {
     } else {
       // Bearing Calculation for non-special cases
       if (userLocation && options?.bearing === undefined) { 
-         try {
-          const startPoint = turf.point(userLocation);
-          const endPoint = turf.point(finalCenter);
-          finalOptions.bearing = turf.bearing(startPoint, endPoint);
-        } catch (error) {
-          console.error("Error calculating bearing:", error);
-          finalOptions.bearing = map.getBearing();
-        }
+        finalOptions.bearing = calculateBearing(userLocation, finalCenter);
       }
     }
 

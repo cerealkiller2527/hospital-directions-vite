@@ -19,8 +19,8 @@ import { cn } from "@/lib/utils";
 import type { Hospital, Directions, TransportMode } from "@/types/hospital";
 import type { EnrichedRoute } from "@/lib/services/directions";
 import { useMap } from "@/contexts/MapContext";
-import { TransportModeSelector } from './TransportModeSelector';
-import { DirectionsPanel } from './DirectionsPanel';
+import { TransportModeSelector } from './TransportModeSelector'; // Assuming it's here
+import { DirectionsPanel } from './DirectionsPanel'; // Assuming it's here
 
 interface DirectionsCardProps {
   hospital: Hospital | null;
