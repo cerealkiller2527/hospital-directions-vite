@@ -69,3 +69,25 @@ export function formatDurationFromSeconds(seconds: number | null | undefined): s
   }
   return `${minutes} min`;
 }
+
+// Shorten and clean address string
+export function shortenAddress(fullAddress: string | undefined): string {
+  if (!fullAddress) return "Address unavailable";
+  
+  let address = fullAddress;
+  
+  // Remove State ZIP, Country (heuristic)
+  const parts = address.split(", ");
+  if (parts.length > 2) {
+    address = parts.slice(0, -2).join(", ");
+  }
+  
+  // Remove "Multispecialty Clinic" (case-insensitive) and extra commas/spaces
+  address = address.replace(/,?\s*Multispecialty Clinic,?/gi, "").trim();
+  // Remove trailing comma if present after replacement
+  if (address.endsWith(',')) {
+      address = address.slice(0, -1);
+  }
+  
+  return address.trim(); // Trim again just in case
+}

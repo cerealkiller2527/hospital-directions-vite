@@ -7,22 +7,26 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Menu, X, Bell } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Z_INDEX, LAYOUT_DIMENSIONS, DEFAULT_AVATAR_PATH, HOSPITAL_LOGO_PATH } from "@/lib/constants"
+import { SidebarToggleButton } from "./SidebarToggleButton"
 
 // ==================== APP HEADER ====================
 
 interface AppHeaderProps {
-  // Remove props related to sidebar toggle
   // isSidebarOpen: boolean
   // onToggleSidebar: () => void
 }
 
-export function AppHeader({}: AppHeaderProps) {
+export function AppHeader({ }: AppHeaderProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 bg-card border-b border-border/60" style={{ zIndex: Z_INDEX.header }}>
+    <header className="fixed top-0 left-0 right-0 bg-background border-b" style={{ zIndex: Z_INDEX.header }}>
       <div className="container flex h-16 items-center justify-between px-4" style={{ height: `${LAYOUT_DIMENSIONS.HEADER_HEIGHT}px` }}>
-        <HospitalLogo />
+        <div className="flex items-center gap-2">
+          {/* Remove Sidebar Toggle Button */}
+          {/* <Button variant="ghost" size="icon" onClick={onToggleSidebar}> ... </Button> */}
+          <HospitalLogo />
+        </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" className="rounded-md" aria-label="Notifications">
             <Bell className="h-4 w-4" />
           </Button>
@@ -70,9 +74,15 @@ interface SidebarContainerProps {
   children: ReactNode
   isOpen: boolean
   className?: string
+  onToggleSidebar: () => void
 }
 
-export function SidebarContainer({ children, isOpen, className }: SidebarContainerProps) {
+export function SidebarContainer({ 
+  children, 
+  isOpen, 
+  className, 
+  onToggleSidebar 
+}: SidebarContainerProps) {
   const outerRef = useRef<HTMLDivElement>(null)
   const innerRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -117,7 +127,7 @@ export function SidebarContainer({ children, isOpen, className }: SidebarContain
 
   return (
     <div className={cn(
-        "fixed top-16 left-0 z-30",
+        "relative fixed top-16 left-0 z-30",
         "transition-all ease-in-out",
         !isOpen && "-translate-x-full",
         className
@@ -131,7 +141,11 @@ export function SidebarContainer({ children, isOpen, className }: SidebarContain
         maxHeight: `calc(100vh - ${LAYOUT_DIMENSIONS.HEADER_HEIGHT}px - ${LAYOUT_DIMENSIONS.SIDEBAR_PADDING_Y} * 2)` // Ensure max height respects padding
       }}
       ref={outerRef}>
-      <div ref={innerRef} className="w-full bg-white rounded-xl shadow-xl border border-gray-100 flex flex-col overflow-hidden" 
+      <SidebarToggleButton isOpen={isOpen} onToggle={onToggleSidebar} />
+      
+      <div 
+        ref={innerRef} 
+        className="w-full h-full bg-white rounded-xl shadow-xl border border-gray-100 flex flex-col overflow-hidden" 
         style={{
             maxHeight: `calc(100vh - ${LAYOUT_DIMENSIONS.HEADER_HEIGHT}px - (${LAYOUT_DIMENSIONS.SIDEBAR_PADDING_Y} + ${LAYOUT_DIMENSIONS.SIDEBAR_PADDING_Y}))`
         }}>

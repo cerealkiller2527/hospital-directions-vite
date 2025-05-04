@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"; // Import Badge
 import { cn } from "@/lib/utils"
+import { shortenAddress } from "@/lib/utils"
 import type { Hospital } from "@/types/hospital"
 import { useMap } from "@/contexts/MapContext" // Corrected context import path
 import { icons } from "@/lib/icons" // Import icons map
@@ -79,17 +80,6 @@ export function LocationCard({
       ? `${distanceMiles.toFixed(1)} mi`
       : "-- mi"; // Placeholder when distance is null/undefined
 
-  // Function to shorten the address string
-  const shortenAddress = (fullAddress: string | undefined): string => {
-    if (!fullAddress) return "Address unavailable";
-    // Split by comma, remove last 2 parts (State ZIP, Country), rejoin
-    const parts = fullAddress.split(", ");
-    if (parts.length > 2) {
-      return parts.slice(0, -2).join(", ");
-    }
-    return fullAddress; // Return original if format is unexpected
-  };
-
   return (
     <Card
       className={cn(
@@ -129,7 +119,7 @@ export function LocationCard({
                 {formattedDistance} {/* Display formatted distance or placeholder */}
               </Badge>
             </div>
-            {/* Address - Use the shortened address */}
+            {/* Address - Use the imported shortenAddress utility */}
             <div className="flex items-center text-xs text-muted-foreground mt-0.5">
               <MapPin className="mr-1 h-3 w-3 flex-shrink-0" />
               <span className="truncate">
