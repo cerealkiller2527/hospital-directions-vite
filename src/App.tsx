@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { MainMap } from "@/components/MainMap";
 import { SidebarContent, type SidebarContentProps } from "@/components/SidebarContent";
 import { MapElements, type MapElementsProps } from "@/components/MapElements";
+import { SidebarToggle } from "@/components/SidebarToggle";
 
 type CustomFlyToOptions = Omit<mapboxgl.CameraOptions & mapboxgl.AnimationOptions, 'center'>;
 
@@ -152,15 +153,15 @@ function AppContent() {
 
   const mapElementsProps: MapElementsProps = {
     mapInstance, hospitalsLoading, processedHospitals, popupLocation,
-    currentRoute, handleViewDirections
+    currentRoute, handleViewDirections,
+    getCurrentPosition, 
+    geoLoading,
   };
 
   return (
     <div className="relative min-h-screen overflow-hidden">
-      <AppHeader
-        isSidebarOpen={sidebarOpen}
-        onToggleSidebar={toggleSidebar}
-      />
+      <AppHeader />
+      <SidebarToggle isOpen={sidebarOpen} onToggle={toggleSidebar} />
       <div className="relative pt-16 h-screen">
         <SidebarContainer isOpen={sidebarOpen}>
            <SidebarContent {...sidebarProps} />

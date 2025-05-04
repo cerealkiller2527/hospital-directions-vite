@@ -4,10 +4,15 @@ import { Plus, Minus, Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMap } from "@/contexts/MapContext";
 import { DEFAULT_MAP_VIEW } from "@/lib/mapbox";
-import { useGeolocation } from "@/lib/hooks/useGeolocation";
 import { DEFAULT_FLY_TO_OPTIONS } from "@/lib/constants";
 
-export function MapControls() {
+// Define props for the component
+interface MapControlsProps {
+  getCurrentPosition: () => void;
+  geoLoading: boolean;
+}
+
+export function MapControls({ getCurrentPosition, geoLoading }: MapControlsProps) {
   const { 
     zoomIn, 
     zoomOut, 
@@ -16,13 +21,13 @@ export function MapControls() {
     flyTo,
     userLocation 
   } = useMap();
-  const { getCurrentPosition, loading: geoLoading } = useGeolocation();
 
   const handleMyLocationClick = () => {
     if (userLocation) {
-      flyTo(userLocation, DEFAULT_MAP_VIEW.maxZoom - 2, { 
+      flyTo(userLocation, DEFAULT_FLY_TO_OPTIONS.zoom, { 
         pitch: DEFAULT_FLY_TO_OPTIONS.pitch, 
-        speed: DEFAULT_FLY_TO_OPTIONS.speed 
+        speed: DEFAULT_FLY_TO_OPTIONS.speed, 
+        curve: DEFAULT_FLY_TO_OPTIONS.curve 
       });
     } else {
       getCurrentPosition();

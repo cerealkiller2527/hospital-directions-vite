@@ -11,23 +11,18 @@ import { Z_INDEX, LAYOUT_DIMENSIONS, DEFAULT_AVATAR_PATH, HOSPITAL_LOGO_PATH } f
 // ==================== APP HEADER ====================
 
 interface AppHeaderProps {
-  isSidebarOpen: boolean
-  onToggleSidebar: () => void
+  // Remove props related to sidebar toggle
+  // isSidebarOpen: boolean
+  // onToggleSidebar: () => void
 }
 
-export function AppHeader({ isSidebarOpen, onToggleSidebar }: AppHeaderProps) {
+export function AppHeader({}: AppHeaderProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 bg-background border-b" style={{ zIndex: Z_INDEX.header }}>
+    <header className="fixed top-0 left-0 right-0 bg-card border-b border-border/60" style={{ zIndex: Z_INDEX.header }}>
       <div className="container flex h-16 items-center justify-between px-4" style={{ height: `${LAYOUT_DIMENSIONS.HEADER_HEIGHT}px` }}>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={onToggleSidebar}>
-            {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            <span className="sr-only">{isSidebarOpen ? "Close sidebar" : "Open sidebar"}</span>
-          </Button>
-          <HospitalLogo />
-        </div>
+        <HospitalLogo />
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <Button variant="outline" size="icon" className="rounded-md" aria-label="Notifications">
             <Bell className="h-4 w-4" />
           </Button>

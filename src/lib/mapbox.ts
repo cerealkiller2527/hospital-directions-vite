@@ -22,11 +22,11 @@ export const MAP_STYLES = {
 };
 
 // Default map configuration
-export const DEFAULT_MAP_VIEW = {
-  center: [-71.1496, 42.3263], // Boston area
-  zoom: 12,
+export const DEFAULT_MAP_VIEW = { // Fork Factory Brook Reservation
+  center: [-71.146450, 42.274798],
   minZoom: 8,
+  zoom: 11.59,
+  pitch: 65.51,
   maxZoom: 22,
-  pitch: 45,
-  bearing: 0
+  bearing: 165.55
 }; 

@@ -19,6 +19,9 @@ export interface MapElementsProps {
   // Use the type from useAppMapData for consistency if possible
   currentRoute: ReturnType<typeof useAppMapData>['currentRoute']; 
   handleViewDirections: (hospital: Hospital) => void;
+  // Add props needed by MapControls
+  getCurrentPosition: () => void;
+  geoLoading: boolean;
 }
 
 export function MapElements({
@@ -27,7 +30,10 @@ export function MapElements({
   processedHospitals,
   popupLocation,
   currentRoute,
-  handleViewDirections
+  handleViewDirections,
+  // Destructure new props
+  getCurrentPosition,
+  geoLoading,
 }: MapElementsProps) {
   return (
     <>
@@ -51,8 +57,8 @@ export function MapElements({
           iconName={hospitalIconMapping[popupLocation.id] || 'hospital'}
         />
       )}
-      {/* Render Controls */}
-      {mapInstance && <MapControls />}
+      {/* Render Controls - pass down props */}
+      {mapInstance && <MapControls getCurrentPosition={getCurrentPosition} geoLoading={geoLoading} />}
       {/* Render Route Info Card */}
       <RouteInfoCard
         route={currentRoute}

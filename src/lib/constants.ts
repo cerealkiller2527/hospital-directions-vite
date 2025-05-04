@@ -16,11 +16,11 @@ export const SPACING = {
 }
 
 export const baseHospitalData: Array<{ id: number; name: string; queryHint: string }> = [
-  { id: 1, name: "Chestnut Hill", queryHint: "Chestnut Hill Medical Center, 25 Boylston St, Chestnut Hill, MA 02467" },
-  { id: 2, name: "Patriot Place", queryHint: "20 Patriot Pl, Foxboro, MA 02035" },
-  { id: 3, name: "22 Patriot Place", queryHint: "22 Patriot Pl, Foxboro, MA 02035" },
+  { id: 1, name: "Chestnut Hill", queryHint: "Mass General Brigham Healthcare Center (Chestnut Hill), 850 Boylston St, Chestnut Hill, MA 02467" },
+  { id: 2, name: "20 Patriot Place", queryHint: "Mass General Brigham Urgent Care, 20 Patriot Pl, Foxborough, MA 02035" },
+  { id: 3, name: "22 Patriot Place", queryHint: "Brigham Health Care Center, Multispecialty Clinic, 22 Patriot Pl 3rd Floor, Foxborough, MA 02035" },
   { id: 4, name: "Faulkner", queryHint: "Faulkner Hospital, 1153 Centre St, Jamaica Plain, MA 02130" },
-  { id: 0, name: "Main Campus", queryHint: "Mass General Brigham Healthcare Center (Chestnut Hill),850 Boylston St, Chestnut Hill, MA 02467" },
+  { id: 0, name: "Main Campus", queryHint: "Brigham and Women's Hospital, 75 Francis St, Boston, MA 02115" },
 ]
 
 export const MAPBOX_WORKER_COUNT = 4;
