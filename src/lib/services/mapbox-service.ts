@@ -2,25 +2,27 @@ import mapboxgl from 'mapbox-gl';
 import { MAPBOX_ACCESS_TOKEN } from '@/lib/mapbox';
 import { MAPBOX_SUPPORT_REASONS } from '@/lib/constants';
 
-// Set the access token globally
+// Set the Mapbox access token globally for all map instances
 mapboxgl.accessToken = MAPBOX_ACCESS_TOKEN;
 
 /**
- * Check if Mapbox GL is supported in the current browser
+ * Determines if the current browser environment supports Mapbox GL JS
+ * @returns boolean indicating if Mapbox GL is supported
  */
 export function isMapboxSupported(): boolean {
   return mapboxgl.supported();
 }
 
 /**
- * Get detailed Mapbox support status with reason if not supported
+ * Provides detailed information about Mapbox GL support status
+ * @returns Object containing support status and reason if not supported
  */
 export function getMapboxSupportStatus(): { supported: boolean; reason?: string } {
   if (mapboxgl.supported()) {
     return { supported: true };
   }
   
-  // WebGL detection
+  // Check for WebGL support in the browser
   if (!window.WebGLRenderingContext) {
     return { 
       supported: false, 
@@ -28,7 +30,7 @@ export function getMapboxSupportStatus(): { supported: boolean; reason?: string 
     };
   }
   
-  // Check if a canvas can get a WebGL context
+  // Verify WebGL context can be created
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
   if (!context) {
@@ -45,7 +47,10 @@ export function getMapboxSupportStatus(): { supported: boolean; reason?: string 
 }
 
 /**
- * Initialize a Mapbox map with error handling
+ * Creates and initializes a new Mapbox map instance
+ * @param container - HTML element that will contain the map
+ * @param options - Optional configuration for the map instance
+ * @returns Mapbox map instance or null if initialization fails
  */
 export function initializeMap(
   container: HTMLElement,

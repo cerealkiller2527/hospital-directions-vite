@@ -4,9 +4,13 @@ import { createContext, useContext, useState, useCallback, type ReactNode, Dispa
 import type { Hospital, TransportMode } from "@/types/hospital"
 import type mapboxgl from 'mapbox-gl';
 import { DEFAULT_MAP_VIEW } from '@/lib/mapbox';
-import { calculateBearing } from '@/lib/utils';
-// Import constants
-import { DEFAULT_FLY_TO_OPTIONS, CHESTNUT_HILL_VIEW_PARAMS, CHESTNUT_HILL_LOCATION_ID } from '@/lib/constants'; 
+// Remove calculateBearing import
+// import { calculateBearing } from '@/lib/utils';
+// Remove constants imports
+// import {
+//   DEFAULT_FLY_TO_OPTIONS, 
+//   CHESTNUT_HILL_VIEW_PARAMS, 
+// } from '@/lib/constants'; 
 
 // Define the type alias here if not already globally available
 type CustomFlyToOptions = Omit<mapboxgl.CameraOptions & mapboxgl.AnimationOptions, 'center' | 'zoom'>;
@@ -75,44 +79,18 @@ export function MapProvider({ children }: MapProviderProps) {
     map?.zoomOut();
   }, [map]);
 
-  const flyTo = useCallback((center: [number, number], zoomLevel?: number, options?: CustomFlyToOptions, hospitalId?: number) => {
+  // Simplify flyTo: Remove specific logic, just pass parameters
+  const flyTo = useCallback((center: [number, number], zoomLevel?: number, options?: CustomFlyToOptions, hospitalId?: number /* Keep hospitalId maybe for future use? */) => {
     if (!map) return;
     
-    let finalCenter: [number, number] = center;
-    let finalZoom: number = zoomLevel ?? map.getZoom();
-    let finalOptions: mapboxgl.CameraOptions & mapboxgl.AnimationOptions = {
-      // Apply defaults from constants
-      pitch: options?.pitch ?? DEFAULT_FLY_TO_OPTIONS.pitch,
-      speed: options?.speed ?? DEFAULT_FLY_TO_OPTIONS.speed,
-      curve: options?.curve ?? DEFAULT_FLY_TO_OPTIONS.curve,
-      bearing: options?.bearing ?? map.getBearing(), // Bearing calculated below if needed
-      ...options // Spread other provided options
-    };
-
-    // Special Case for Chestnut Hill (ID 1)
-    // Use constants for Chestnut Hill
-    if (hospitalId === CHESTNUT_HILL_LOCATION_ID) {
-      finalCenter = CHESTNUT_HILL_VIEW_PARAMS.coordinates;
-      finalZoom = CHESTNUT_HILL_VIEW_PARAMS.zoom;
-      finalOptions = { 
-        ...finalOptions, 
-        pitch: CHESTNUT_HILL_VIEW_PARAMS.pitch, 
-        bearing: CHESTNUT_HILL_VIEW_PARAMS.bearing 
-      }; 
-    } else {
-      // Bearing Calculation for non-special cases
-      if (userLocation && options?.bearing === undefined) { 
-        finalOptions.bearing = calculateBearing(userLocation, finalCenter);
-      }
-    }
-
-    map.flyTo({ 
-      center: finalCenter, 
-      zoom: finalZoom,
-      ...finalOptions
+    // Basic flyTo call - complexity is handled in App.tsx/LocationMarker.tsx
+    map.flyTo({
+      center: center,
+      zoom: zoomLevel ?? map.getZoom(), // Use provided zoom or current zoom
+      ...(options || {}) // Spread any provided options (pitch, bearing, speed, curve)
     });
 
-  }, [map, userLocation]); // Include userLocation dependency
+  }, [map]); // Only depends on map instance now
 
   const value = {
     selectedLocation,

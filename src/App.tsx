@@ -5,13 +5,14 @@ import { AppHeader, SidebarContainer } from "@/components/Layout"
 import { MapProvider, useMap } from "@/contexts/MapContext"
 import { MapErrorBoundary } from "@/components/map/MapErrorBoundary"
 import type { Hospital } from "@/types/hospital"
-import {
-  LAYOUT_DIMENSIONS,
+import { 
+  LAYOUT_DIMENSIONS, 
   DEFAULT_FLY_TO_OPTIONS,
+  HOSPITAL_SPECIFIC_VIEWS,
   Z_INDEX,
-  HOSPITAL_CUSTOM_VIEWS,
 } from "@/lib/constants";
 import mapboxgl from 'mapbox-gl';
+import type { CameraOptions } from 'mapbox-gl';
 import {
   CheckCircle,
   AlertTriangle,
@@ -25,7 +26,6 @@ import { toast } from "sonner";
 import { MainMap } from "@/components/MainMap";
 import { SidebarContent, type SidebarContentProps } from "@/components/SidebarContent";
 import { MapElements, type MapElementsProps } from "@/components/MapElements";
-import { SidebarToggle } from "@/components/SidebarToggle";
 
 type CustomFlyToOptions = Omit<mapboxgl.CameraOptions & mapboxgl.AnimationOptions, 'center'>;
 
@@ -86,62 +86,49 @@ function AppContent() {
         icon: <Info className="h-4 w-4" />,
       });
     }
-  }, [activeTab, selectedLocation]);
+  }, [activeTab, selectedLocation]); 
 
   const handleSelectHospitalFromList = useCallback((hospital: Hospital) => {
-    setSelectedLocation(hospital);
-    setPopupLocation(null);
+    setSelectedLocation(hospital); 
+    setPopupLocation(null);        
     setAnimatingMarkerId(hospital.id);
-    
     if (hospital.coordinates) {
-        // Get custom view options or fallback to defaults
-        const customView = HOSPITAL_CUSTOM_VIEWS[hospital.id] || {};
-        const defaultOptions = DEFAULT_FLY_TO_OPTIONS; // For easier access
-
-        let flyToOptions: CustomFlyToOptions & { center: [number, number]; zoom: number } = {
-          // Base options from defaults
-          pitch: defaultOptions.pitch,
-          speed: defaultOptions.speed,
-          curve: defaultOptions.curve,
-          bearing: mapInstance?.getBearing() ?? defaultOptions.bearing,
-          zoom: defaultOptions.zoom,
-          center: hospital.coordinates as [number, number], // Default center to hospital coords
-          
-          // Override with custom view settings if they exist
-          ...customView, 
+        const specificView = HOSPITAL_SPECIFIC_VIEWS[hospital.id] || {};
+        
+        const targetCenter = specificView.coordinates || hospital.coordinates;
+        
+        let flyToOptions: CustomFlyToOptions & Pick<CameraOptions, 'zoom' | 'pitch' | 'bearing'> = {
+          speed: DEFAULT_FLY_TO_OPTIONS.speed,
+          curve: DEFAULT_FLY_TO_OPTIONS.curve,
+          zoom: specificView.zoom ?? DEFAULT_FLY_TO_OPTIONS.zoom,
+          pitch: specificView.pitch ?? DEFAULT_FLY_TO_OPTIONS.pitch,
+          bearing: specificView.bearing ?? mapInstance?.getBearing() ?? 0,
         };
-        
-        // Use custom coordinates if provided, otherwise stick to hospital's
-        if (customView.coordinates) {
-            flyToOptions.center = customView.coordinates;
-        }
 
-        // Override bearing only if not explicitly set in custom view
-        if (contextUserLocation && customView.bearing === undefined) {
-          try {
-            flyToOptions.bearing = calculateBearing(contextUserLocation, flyToOptions.center);
-          } catch (error) {
-            console.error("Error calculating bearing:", error);
+        if (specificView.bearing === undefined && contextUserLocation) {
+            try {
+            flyToOptions.bearing = calculateBearing(contextUserLocation, targetCenter as [number, number]);
+            } catch (error) {
+              console.error("Error calculating bearing:", error);
+            }
           }
-        }
         
-        // Call flyTo with the constructed options
-        flyTo(flyToOptions.center, flyToOptions.zoom, flyToOptions, hospital.id);
+        flyTo(targetCenter as [number, number], flyToOptions.zoom, flyToOptions, hospital.id);
     }
   }, [setSelectedLocation, setPopupLocation, setAnimatingMarkerId, flyTo, contextUserLocation, mapInstance]);
 
   const handleViewDirections = useCallback((hospital: Hospital) => {
     setSelectedLocation(hospital);
-    setPopupLocation(null);
+    setPopupLocation(null);      
     setAnimatingMarkerId(null);
     setActiveTab("directions");
   }, [setSelectedLocation, setPopupLocation, setAnimatingMarkerId, setActiveTab]);
-
+  
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev)
     setTimeout(() => {
       mapInstance?.resize()
-    }, LAYOUT_DIMENSIONS.SIDEBAR_TRANSITION_MS)
+    }, LAYOUT_DIMENSIONS.SIDEBAR_TRANSITION_MS) 
   }, [mapInstance])
 
   const sidebarProps: SidebarContentProps = {
@@ -154,20 +141,21 @@ function AppContent() {
   const mapElementsProps: MapElementsProps = {
     mapInstance, hospitalsLoading, processedHospitals, popupLocation,
     currentRoute, handleViewDirections,
-    getCurrentPosition, 
-    geoLoading,
+    userLocation, getCurrentPosition, geoLoading
   };
 
   return (
     <div className="relative min-h-screen overflow-hidden">
       <AppHeader />
-      <SidebarToggle isOpen={sidebarOpen} onToggle={toggleSidebar} />
       <div className="relative pt-16 h-screen">
-        <SidebarContainer isOpen={sidebarOpen}>
+        <SidebarContainer 
+          isOpen={sidebarOpen} 
+          onToggleSidebar={toggleSidebar}
+        >
            <SidebarContent {...sidebarProps} />
         </SidebarContainer>
         <div className="absolute top-16 bottom-0 left-0 right-0" style={{ zIndex: Z_INDEX.map }}>
-          <MainMap />
+          <MainMap /> 
           <RouteLayerManager routes={allRoutes} onSelectRoute={selectRoute} />
           <MapElements {...mapElementsProps} />
         </div>
@@ -178,13 +166,13 @@ function AppContent() {
 
 export default function App() {
   return (
-    <MapErrorBoundary fallback={<p>Map failed to load. Please refresh.</p>}>
+    <MapErrorBoundary fallback={<p>Map failed to load. Please refresh.</p>}> 
       <MapProvider>
         <AppContent />
-        <Toaster
-          position="top-center"
-          richColors
-          closeButton
+        <Toaster 
+          position="top-center" 
+          richColors 
+          closeButton 
           toastOptions={{
             style: { marginTop: `${LAYOUT_DIMENSIONS.HEADER_HEIGHT + 8}px` },
           }}

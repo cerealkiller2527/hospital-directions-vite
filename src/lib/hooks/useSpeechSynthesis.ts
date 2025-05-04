@@ -37,7 +37,7 @@ export function useSpeechSynthesis(steps: DirectionStep[]): UseSpeechSynthesisRe
           utteranceRef.current = null;
           toast.info("Directions updated, audio stopped.");
       }
-  }, [steps, isPlaying]);
+  }, [steps]);
 
   // --- Effect to get available voices ---
   useEffect(() => {

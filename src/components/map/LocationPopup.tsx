@@ -8,6 +8,7 @@ import type { Hospital } from '@/types/hospital';
 import { MapPin, Phone, Globe, Clock, Navigation } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { shortenAddress } from "@/lib/utils";
 import { icons } from '@/lib/icons';
 import { Hospital as HospitalIcon } from 'lucide-react';
 import { MAP_POPUP_OPTIONS } from '@/lib/constants';
@@ -99,7 +100,7 @@ export function LocationPopup({ location, onViewDirections, iconName }: Location
             {/* Use muted color for icon and text */}
             <MapPin className="h-3 w-3 text-muted-foreground flex-shrink-0 mt-0.5" />
             <p className="text-xs text-muted-foreground break-words leading-tight">
-              {location.address || 'Address not available'}
+              {shortenAddress(location.address) || 'Address not available'}
             </p>
           </div>
         </div>

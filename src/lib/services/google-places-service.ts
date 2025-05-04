@@ -1,22 +1,24 @@
 /// <reference types="vite/client" />
 
 import type { Hospital } from '@/types/hospital';
-import { GOOGLE_PLACES_FIELDS } from '@/lib/constants'; // Import constants
+import { GOOGLE_PLACES_FIELDS } from '@/lib/constants';
 
-// Define structured return types
+// Interface for the result of finding a place ID
 interface FindPlaceIdResult {
   data: string | null;
   error: string | null;
 }
+
+// Interface for the result of getting place details
 interface GetPlaceDetailsResult {
   data: Partial<Hospital> | null;
   error: string | null;
 }
 
-// Use the original environment variable name
 const API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
-const BASE_URL = '/api/google-places'; // Use the proxy path
+const BASE_URL = '/api/google-places';
 
+// Interface for place details returned from Google Places API
 interface PlaceDetailsResult {
   name: string;
   address?: string;
@@ -27,37 +29,38 @@ interface PlaceDetailsResult {
   placeId?: string;
 }
 
+// Interface for place search results
 interface PlaceSearchResult {
-  data: string | null; // Place ID
+  data: string | null;
   error: string | null;
 }
 
-// New interface for Autocomplete suggestions
+// Interface for autocomplete suggestions
 export interface AutocompleteSuggestion {
   description: string;
   place_id: string;
 }
 
-// New interface for Autocomplete response
+// Interface for autocomplete API response
 interface AutocompleteResponse {
   data: AutocompleteSuggestion[] | null;
   error: string | null;
 }
 
-// New interface for Coordinates response
+// Interface for coordinates API response
 interface CoordinatesResponse {
   data: [number, number] | null;
   error: string | null;
 }
 
 if (!API_KEY) {
-  // Update error message to reflect the correct variable name
   console.error('Missing Google Places API key. Set VITE_GOOGLE_PLACES_API_KEY in your .env file.');
 }
 
 /**
- * Finds the Place ID for a given query using Google Places Text Search API.
- * Uses the Vite proxy defined in vite.config.ts for CORS.
+ * Finds the Place ID for a given query using Google Places Text Search API
+ * @param query - The search query string
+ * @returns Promise resolving to a PlaceSearchResult containing the place ID or error
  */
 export async function findPlaceId(query: string): Promise<PlaceSearchResult> {
   if (!API_KEY) return { data: null, error: 'Google API Key missing' };
@@ -82,8 +85,9 @@ export async function findPlaceId(query: string): Promise<PlaceSearchResult> {
 }
 
 /**
- * Fetches detailed information for a place using its Place ID.
- * Uses the Vite proxy defined in vite.config.ts for CORS.
+ * Fetches detailed information for a place using its Place ID
+ * @param placeId - The Google Places Place ID
+ * @returns Promise resolving to place details or error
  */
 export async function getPlaceDetails(placeId: string): Promise<{ data: PlaceDetailsResult | null; error: string | null }> {
   if (!API_KEY) return { data: null, error: 'Google API Key missing' };
@@ -99,8 +103,7 @@ export async function getPlaceDetails(placeId: string): Promise<{ data: PlaceDet
     if (data.status === 'OK') {
       const result = data.result;
       const details: PlaceDetailsResult = {
-        // Fetch the name from Google, but it will be overwritten in useHospitalData
-        name: result.name, 
+        name: result.name,
         address: result.formatted_address,
         phone: result.international_phone_number,
         website: result.website,
@@ -120,14 +123,14 @@ export async function getPlaceDetails(placeId: string): Promise<{ data: PlaceDet
 }
 
 /**
- * Get Place Autocomplete suggestions using Google Places Autocomplete API.
+ * Gets place autocomplete suggestions using Google Places Autocomplete API
+ * @param input - The user's input string
+ * @returns Promise resolving to autocomplete suggestions or error
  */
 export async function getPlaceAutocomplete(input: string): Promise<AutocompleteResponse> {
-  if (!input) return { data: [], error: null }; // Return empty array if input is empty
+  if (!input) return { data: [], error: null };
   if (!API_KEY) return { data: null, error: 'Google API Key missing' };
   
-  // Bias results towards the rough viewport or user location if available? (Optional)
-  // Add types=address or types=geocode if you only want locations/addresses
   const url = `${BASE_URL}/autocomplete/json?input=${encodeURIComponent(input)}&key=${API_KEY}`;
 
   try {
@@ -143,7 +146,7 @@ export async function getPlaceAutocomplete(input: string): Promise<AutocompleteR
       }));
       return { data: suggestions, error: null };
     } else if (data.status === 'ZERO_RESULTS') {
-      return { data: [], error: null }; // No results is not an error
+      return { data: [], error: null };
     } else {
       return { data: null, error: data.error_message || 'Failed to get autocomplete suggestions' };
     }
@@ -155,11 +158,13 @@ export async function getPlaceAutocomplete(input: string): Promise<AutocompleteR
 }
 
 /**
- * Get Coordinates from Place ID using Google Places Details API.
+ * Gets coordinates from a Place ID using Google Places Details API
+ * @param placeId - The Google Places Place ID
+ * @returns Promise resolving to coordinates or error
  */
 export async function getCoordsFromPlaceId(placeId: string): Promise<CoordinatesResponse> {
   if (!API_KEY) return { data: null, error: 'Google API Key missing' };
-  const fields = GOOGLE_PLACES_FIELDS.GEOMETRY; // Only fetch geometry
+  const fields = GOOGLE_PLACES_FIELDS.GEOMETRY;
   const url = `${BASE_URL}/details/json?place_id=${placeId}&fields=${fields}&key=${API_KEY}`;
 
   try {
@@ -179,4 +184,4 @@ export async function getCoordsFromPlaceId(placeId: string): Promise<Coordinates
     const message = error instanceof Error ? error.message : 'Unknown error';
     return { data: null, error: `Failed to fetch coordinates: ${message}` };
   }
-} 
+}

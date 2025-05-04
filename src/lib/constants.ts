@@ -1,6 +1,12 @@
 import type { Hospital, Directions } from "@/types/hospital"
 import type mapboxgl from 'mapbox-gl';
-import type { SkyLayerSpecification, FillExtrusionLayerSpecification, Expression } from 'mapbox-gl';
+import type { SkyLayerSpecification, FillExtrusionLayerSpecification, Expression, CameraOptions } from 'mapbox-gl';
+
+// Define interface for specific view params (optional)
+interface HospitalViewParams extends Partial<Pick<CameraOptions, 'zoom' | 'pitch' | 'bearing'>> {
+  coordinates?: [number, number]; // Optional coordinate override
+  // Add speed, curve etc. if needed: speed?: number;
+}
 
 export const Z_INDEX = {
   base: 0,
@@ -16,10 +22,10 @@ export const SPACING = {
 }
 
 export const baseHospitalData: Array<{ id: number; name: string; queryHint: string }> = [
-  { id: 1, name: "Chestnut Hill", queryHint: "Mass General Brigham Healthcare Center (Chestnut Hill), 850 Boylston St, Chestnut Hill, MA 02467" },
+  { id: 1, name: "Chestnut Hill", queryHint: "Chestnut Hill Medical Center, 25 Boylston St, Chestnut Hill, MA 02467" },
   { id: 2, name: "20 Patriot Place", queryHint: "Mass General Brigham Urgent Care, 20 Patriot Pl, Foxborough, MA 02035" },
   { id: 3, name: "22 Patriot Place", queryHint: "Brigham Health Care Center, Multispecialty Clinic, 22 Patriot Pl 3rd Floor, Foxborough, MA 02035" },
-  { id: 4, name: "Faulkner", queryHint: "Faulkner Hospital, 1153 Centre St, Jamaica Plain, MA 02130" },
+  { id: 4, name: "Faulkner", queryHint: "Brigham and Women's Faulkner Hospital, 1153 Centre St, Jamaica Plain, MA 02130" },
   { id: 0, name: "Main Campus", queryHint: "Brigham and Women's Hospital, 75 Francis St, Boston, MA 02115" },
 ]
 
@@ -53,61 +59,19 @@ export const DEFAULT_FLY_TO_OPTIONS = {
   speed: 1.8,
   curve: 1.42,
   zoom: 18,
-  bearing: 0,
 };
 
-export const CHESTNUT_HILL_LOCATION_ID = 1;
-export const CHESTNUT_HILL_VIEW_PARAMS = {
-  coordinates: [-71.167169, 42.323224] as [number, number],
-  zoom: 19.56,
-  pitch: 71.00,
-  bearing: 16.00,
-  speed: DEFAULT_FLY_TO_OPTIONS.speed,
-  curve: DEFAULT_FLY_TO_OPTIONS.curve,
-};
-
-const MAIN_CAMPUS_VIEW_PARAMS = {
-  coordinates: [-71.167169, 42.323224] as [number, number],
-  zoom: DEFAULT_FLY_TO_OPTIONS.zoom,
-  pitch: DEFAULT_FLY_TO_OPTIONS.pitch,
-  bearing: undefined,
-  speed: DEFAULT_FLY_TO_OPTIONS.speed,
-  curve: DEFAULT_FLY_TO_OPTIONS.curve,
-};
-
-const PATRIOT_PLACE_VIEW_PARAMS = {
-  coordinates: [-71.2687, 42.0918] as [number, number],
-  zoom: DEFAULT_FLY_TO_OPTIONS.zoom,
-  pitch: DEFAULT_FLY_TO_OPTIONS.pitch,
-  bearing: undefined,
-  speed: DEFAULT_FLY_TO_OPTIONS.speed,
-  curve: DEFAULT_FLY_TO_OPTIONS.curve,
-};
-
-const PATRIOT_PLACE_22_VIEW_PARAMS = {
-  coordinates: [-71.2687, 42.0918] as [number, number],
-  zoom: DEFAULT_FLY_TO_OPTIONS.zoom,
-  pitch: DEFAULT_FLY_TO_OPTIONS.pitch,
-  bearing: undefined,
-  speed: DEFAULT_FLY_TO_OPTIONS.speed,
-  curve: DEFAULT_FLY_TO_OPTIONS.curve,
-};
-
-const FAULKNER_VIEW_PARAMS = {
-  coordinates: [-71.1457, 42.3179] as [number, number],
-  zoom: DEFAULT_FLY_TO_OPTIONS.zoom,
-  pitch: DEFAULT_FLY_TO_OPTIONS.pitch,
-  bearing: undefined,
-  speed: DEFAULT_FLY_TO_OPTIONS.speed,
-  curve: DEFAULT_FLY_TO_OPTIONS.curve,
-};
-
-export const HOSPITAL_CUSTOM_VIEWS: Record<number, Partial<typeof DEFAULT_FLY_TO_OPTIONS & { coordinates?: [number, number]}>> = {
-  0: MAIN_CAMPUS_VIEW_PARAMS,
-  1: CHESTNUT_HILL_VIEW_PARAMS,
-  2: PATRIOT_PLACE_VIEW_PARAMS,
-  3: PATRIOT_PLACE_22_VIEW_PARAMS,
-  4: FAULKNER_VIEW_PARAMS,
+// Define the new map for specific hospital views
+export const HOSPITAL_SPECIFIC_VIEWS: Record<number, HospitalViewParams> = {
+  // Example: Replicate Chestnut Hill view
+  1: {
+    coordinates: [-71.167169, 42.323224],
+    zoom: 19.56,
+    pitch: 71.00,
+    bearing: 16.00,
+  },
+  // Add entries for other hospitals here if needed, e.g.:
+  // 4: { zoom: 17.5, pitch: 65 }, // Faulkner example
 };
 
 export const SKY_LAYER_CONFIG: SkyLayerSpecification = {

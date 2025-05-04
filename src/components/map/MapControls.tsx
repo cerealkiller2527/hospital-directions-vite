@@ -1,33 +1,35 @@
 "use client"
 
-import { Plus, Minus, Navigation } from "lucide-react";
+import { Plus, Minus, Navigation, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useMap } from "@/contexts/MapContext";
 import { DEFAULT_MAP_VIEW } from "@/lib/mapbox";
 import { DEFAULT_FLY_TO_OPTIONS } from "@/lib/constants";
 
-// Define props for the component
 interface MapControlsProps {
+  userLocation: [number, number] | null;
   getCurrentPosition: () => void;
   geoLoading: boolean;
 }
 
-export function MapControls({ getCurrentPosition, geoLoading }: MapControlsProps) {
+export function MapControls({ 
+  userLocation, 
+  getCurrentPosition, 
+  geoLoading 
+}: MapControlsProps) {
   const { 
     zoomIn, 
     zoomOut, 
     isMinZoom, 
     isMaxZoom, 
     flyTo,
-    userLocation 
   } = useMap();
 
   const handleMyLocationClick = () => {
     if (userLocation) {
       flyTo(userLocation, DEFAULT_FLY_TO_OPTIONS.zoom, { 
         pitch: DEFAULT_FLY_TO_OPTIONS.pitch, 
-        speed: DEFAULT_FLY_TO_OPTIONS.speed, 
-        curve: DEFAULT_FLY_TO_OPTIONS.curve 
+        speed: DEFAULT_FLY_TO_OPTIONS.speed 
       });
     } else {
       getCurrentPosition();
@@ -40,11 +42,11 @@ export function MapControls({ getCurrentPosition, geoLoading }: MapControlsProps
         variant="outline"
         size="icon"
         className="h-10 w-10 rounded-md shadow-md bg-white border-gray-200 hover:bg-gray-50 text-primary"
-        aria-label="Go to my location"
+        aria-label={userLocation ? "Go to my location" : "Find my location"}
         onClick={handleMyLocationClick}
         disabled={geoLoading}
       >
-        <Navigation className="h-5 w-5" />
+        {geoLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Navigation className="h-5 w-5" />}
       </Button>
       <Button
         variant="outline"

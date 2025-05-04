@@ -1,17 +1,21 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useMap } from '@/contexts/MapContext';
 import type { Hospital } from '@/types/hospital';
 import { cn } from '@/lib/utils';
-import { DEFAULT_MAP_VIEW } from '@/lib/mapbox'; // Import DEFAULT_MAP_VIEW
 import { icons } from '@/lib/icons'; // Import centralized map
 import { Hospital as HospitalIcon, Info } from 'lucide-react'; // Keep fallback import, add Info icon
 import { calculateBearing } from '@/lib/utils';
 import { toast } from 'sonner'; // Import toast
 // Import constants
-import { DEFAULT_FLY_TO_OPTIONS, HOSPITAL_CUSTOM_VIEWS } from '@/lib/constants'; 
+import {
+  DEFAULT_FLY_TO_OPTIONS,
+  HOSPITAL_SPECIFIC_VIEWS
+} from '@/lib/constants'; 
+// Add CameraOptions import
+import type { CameraOptions } from 'mapbox-gl';
 
 // Define the combined type for flyTo options
 type CustomFlyToOptions = Omit<mapboxgl.CameraOptions & mapboxgl.AnimationOptions, 'center'>;
@@ -26,178 +30,125 @@ export function LocationMarker({ hospital, iconName }: LocationMarkerProps) {
     map, 
     selectedLocation, setSelectedLocation, 
     popupLocation, setPopupLocation, 
-    animatingMarkerId, setAnimatingMarkerId, // Re-add animation state/setter
     userLocation, // Get userLocation from context
     flyTo,
     activeTab // Get activeTab from context
   } = useMap();
-  const markerElementRef = useRef<HTMLDivElement>(null);
+  
+  // Ref for the Mapbox marker instance
   const markerRef = useRef<mapboxgl.Marker | null>(null);
+  // Ref to hold the DOM element *created programmatically*
+  const markerElementRef = useRef<HTMLDivElement | null>(null);
 
   // Find the icon component based on name, default to HospitalIcon
-  const IconComponent = icons[iconName] || HospitalIcon;
+  const IconComponent = useMemo(() => icons[iconName] || HospitalIcon, [iconName]);
 
-  // Effect for marker creation and position updates
-  useEffect(() => {
-    if (!map || !markerElementRef.current || !hospital.coordinates) {
-      // If map/element/coords aren't ready, or if marker exists, remove it
-      if (markerRef.current) {
-        markerRef.current.remove();
-        markerRef.current = null;
+  const isSelected = selectedLocation?.id === hospital.id;
+
+  // --- Logic for clicking the marker element (remains largely the same) ---
+  const handleListTabClick = (clickedHospital: Hospital) => {
+      setSelectedLocation(clickedHospital);
+      const isPopupCurrentlyOpen = popupLocation?.id === clickedHospital.id;
+      if (isPopupCurrentlyOpen) {
+          setPopupLocation(null);
+      } else {
+          setPopupLocation(clickedHospital);
+          if (selectedLocation?.id !== clickedHospital.id) {
+            if (clickedHospital.coordinates) {
+              const specificView = HOSPITAL_SPECIFIC_VIEWS[clickedHospital.id] || {};
+              const targetCenter = specificView.coordinates || clickedHospital.coordinates;
+              let flyToOptions: CustomFlyToOptions & Pick<CameraOptions, 'zoom' | 'pitch' | 'bearing'> = {
+                speed: DEFAULT_FLY_TO_OPTIONS.speed,
+                curve: DEFAULT_FLY_TO_OPTIONS.curve,
+                zoom: specificView.zoom ?? DEFAULT_FLY_TO_OPTIONS.zoom,
+                pitch: specificView.pitch ?? DEFAULT_FLY_TO_OPTIONS.pitch,
+                bearing: specificView.bearing ?? map?.getBearing() ?? 0,
+              };
+              if (specificView.bearing === undefined && userLocation) {
+                try { flyToOptions.bearing = calculateBearing(userLocation, targetCenter as [number, number]); } catch (error) { console.error("Error bearing:", error); }
+              }
+              flyTo(targetCenter as [number, number], flyToOptions.zoom, flyToOptions, clickedHospital.id);
+            }
+          }
       }
-      return; // Exit early
-    }
+  };
 
-    // If marker doesn't exist, create it
+  const handleDirectionsTabClick = (clickedHospital: Hospital) => {
+      const isCurrentlySelected = selectedLocation?.id === clickedHospital.id;
+      const isPopupCurrentlyOpen = popupLocation?.id === clickedHospital.id;
+      if (isCurrentlySelected) {
+          if (isPopupCurrentlyOpen) { setPopupLocation(null); } else { setPopupLocation(clickedHospital); }
+      } else {
+          setSelectedLocation(clickedHospital);
+          setPopupLocation(null);
+          toast.info(`Calculating directions to ${clickedHospital.name}`, { icon: <Info className="h-4 w-4" /> });
+      }
+  };
+
+  const handleClick = (e: React.MouseEvent<HTMLDivElement>) => { // Change type to React.MouseEvent
+    e.stopPropagation();
+    if (activeTab === 'directions') {
+        handleDirectionsTabClick(hospital);
+    } else {
+        handleListTabClick(hospital);
+    }
+  };
+
+  // Effect for creating/updating the Mapbox marker instance
+  useEffect(() => {
+    if (!map || !hospital.coordinates || !markerElementRef.current) return;
+
+    // --- Create or update Mapbox Marker --- 
     if (!markerRef.current) {
       markerRef.current = new mapboxgl.Marker({
-        element: markerElementRef.current,
+        element: markerElementRef.current, // Use the React-rendered element
         anchor: 'bottom',
-        offset: [0, 0]
       })
         .setLngLat(hospital.coordinates as [number, number])
         .addTo(map);
     } else {
-      // If marker exists, just update its position
+      // Just update position if marker already exists
       markerRef.current.setLngLat(hospital.coordinates as [number, number]);
     }
 
-    // Cleanup function to remove marker when dependencies change or component unmounts
+    // Cleanup function to remove the Mapbox marker
     return () => {
       if (markerRef.current) {
         markerRef.current.remove();
         markerRef.current = null;
       }
     };
-  }, [map, hospital.coordinates]); // Depend only on map instance and coordinates for position
+  // Dependencies: map instance and coordinates
+  }, [map, hospital.coordinates]); // Keep dependencies minimal for marker management
 
-  // Effect for adding/removing the click listener
-  useEffect(() => {
-    const currentElement = markerElementRef.current;
-    if (!map || !currentElement || !hospital) return;
-
-    // --- Helper function for List Tab click logic ---
-    const handleListTabClick = (clickedHospital: Hospital) => {
-        setSelectedLocation(clickedHospital); // Always select in list view
-
-        const isPopupCurrentlyOpen = popupLocation?.id === clickedHospital.id;
-        if (isPopupCurrentlyOpen) {
-            setPopupLocation(null); // Close popup if already open for this marker
-        } else {
-            setPopupLocation(clickedHospital); // Open popup for the clicked marker
-            
-            // --- Prevent flyTo if this marker is already the selected one --- 
-            if (selectedLocation?.id !== clickedHospital.id) {
-              // Fly to the marker only when opening its popup AND it wasn't already selected
-              
-              // Get custom view options or fallback to defaults
-              const customView = HOSPITAL_CUSTOM_VIEWS[clickedHospital.id] || {};
-              const defaultOptions = DEFAULT_FLY_TO_OPTIONS; // For easier access
-
-              let flyToOptions: CustomFlyToOptions & { center: [number, number]; zoom: number } = {
-                // Base options from defaults
-                pitch: defaultOptions.pitch,
-                speed: defaultOptions.speed,
-                curve: defaultOptions.curve,
-                bearing: map?.getBearing() ?? defaultOptions.bearing,
-                zoom: defaultOptions.zoom,
-                center: clickedHospital.coordinates as [number, number], // Default center to hospital coords
-                
-                // Override with custom view settings if they exist
-                ...customView, 
-              };
-              
-              // Use custom coordinates if provided, otherwise stick to hospital's
-              if (customView.coordinates) {
-                  flyToOptions.center = customView.coordinates;
-              }
-
-              // Override bearing only if not explicitly set in custom view
-              if (userLocation && customView.bearing === undefined) {
-                try {
-                  flyToOptions.bearing = calculateBearing(userLocation, flyToOptions.center);
-                } catch (error) {
-                  console.error("Error calculating bearing:", error);
-                }
-              }
-              
-              // Call flyTo with the constructed options
-              flyTo(flyToOptions.center, flyToOptions.zoom, flyToOptions, clickedHospital.id);
-
-            } // --- End of flyTo condition ---
-        }
-    };
-
-    // --- Helper function for Directions Tab click logic ---
-    const handleDirectionsTabClick = (clickedHospital: Hospital) => {
-        const isCurrentlySelected = selectedLocation?.id === clickedHospital.id;
-        const isPopupCurrentlyOpen = popupLocation?.id === clickedHospital.id;
-
-        if (isCurrentlySelected) {
-            // Clicked the marker that is *already* the selected destination
-            if (isPopupCurrentlyOpen) {
-                setPopupLocation(null); // Close the popup
-            } else {
-                setPopupLocation(clickedHospital); // Open the popup
-            }
-        } else {
-            // Clicked a *different* marker while directions are active
-            setSelectedLocation(clickedHospital); // Switch the destination
-            setPopupLocation(null);      // Ensure any other popup is closed
-            toast.info(`Calculating directions to ${clickedHospital.name}`, {
-               icon: <Info className="h-4 w-4" />,
-            });
-        }
-    };
-
-    // --- Main click handler --- 
-    const handleClick = (e: MouseEvent) => {
-      e.stopPropagation(); 
-      setAnimatingMarkerId(null); // Stop any animation on click
-
-      if (activeTab === 'directions') {
-          handleDirectionsTabClick(hospital);
-      } else {
-          handleListTabClick(hospital);
-      }
-    };
-
-    currentElement.addEventListener('click', handleClick);
-
-    // Cleanup function
-    return () => {
-      currentElement.removeEventListener('click', handleClick);
-    };
-  // Update dependencies: Added selectedLocation?.id
-  }, [map, hospital.id, hospital.coordinates, userLocation, popupLocation?.id, selectedLocation?.id, flyTo, setAnimatingMarkerId, setSelectedLocation, setPopupLocation, activeTab]);
-
-  const isSelected = selectedLocation?.id === hospital.id;
-
+  // Restore JSX structure
   return (
-    <div ref={markerElementRef} className="marker-dom-element cursor-pointer" style={{ pointerEvents: 'auto' }}>
+    <div 
+      ref={markerElementRef} 
+      className="marker-dom-element cursor-pointer" 
+      style={{ pointerEvents: 'auto' }} 
+      onClick={handleClick} // Use React onClick
+    >
       {/* Apply jump animation to this container when selected */}
       <div className={cn(
         'relative', 
         'transition-transform duration-150 ease-in-out',
-        // ADDED: Apply jump animation when selected
         isSelected && 'animate-marker-jump'
       )}>
         {/* Icon Container - Apply glow class here when selected */}
         <div className={cn(
           `relative h-8 w-8 rounded-full flex items-center justify-center shadow-lg ring-2 ring-offset-2 ring-offset-background transition-all`,
-          // Use primary blue background and white icon color
           isSelected 
             ? 'bg-primary text-primary-foreground ring-primary ring-offset-primary/30'
-            : 'bg-primary text-primary-foreground ring-primary ring-offset-primary/30',
-          // Apply glow animation class when selected
+            : 'bg-primary text-primary-foreground ring-primary ring-offset-primary/30', // Ensure non-selected state is defined
           isSelected && 'marker-icon-container-glow'
         )}>
-          {/* Render the selected icon */}
+          {/* Render the dynamic IconComponent directly */}
           <IconComponent className="h-4 w-4" />
         </div>
-        {/* Tip - Adjust bottom offset to close the gap */}
+        {/* Tip */}
         <div className={cn(
-          `absolute -bottom-[12px] left-1/2 -translate-x-1/2 w-0 h-0`,
+          `tip-element absolute -bottom-[9px] left-1/2 -translate-x-1/2 w-0 h-0`,
           `border-l-[6px] border-l-transparent`,
           `border-t-[9px]`,
           `border-r-[6px] border-r-transparent`,
