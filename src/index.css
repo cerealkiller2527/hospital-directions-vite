@@ -1,7 +1,84 @@
 @import "tailwindcss";
 
+:root {
+  --background: hsl(60 100% 100%);
+  --foreground: hsl(205 11% 4%);
+  --card: hsl(60 100% 100%);
+  --card-foreground: hsl(205 11% 4%);
+  --popover: hsl(60 100% 100%);
+  --popover-foreground: hsl(205 11% 4%);
+  --primary: hsl(205 100% 22%);
+  --primary-foreground: hsl(204 9% 95%);
+  --secondary: hsl(205 25% 62%);
+  --secondary-foreground: hsl(205 25% 10%);
+  --muted: hsl(205 25% 62%);
+  --muted-foreground: hsl(205 25% 22%);
+  --accent: hsl(209 44% 78%);
+  --accent-foreground: hsl(209 43% 10%);
+  --destructive: hsl(357 99% 45%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(2 6% 90%);
+  --input: hsl(2 6% 90%);
+  --ring: hsl(205 100% 22%);
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: hsl(205 30% 8%);
+  --foreground: hsl(204 9% 95%);
+  --card: hsl(205 30% 12%);
+  --card-foreground: hsl(204 9% 95%);
+  --popover: hsl(205 30% 12%);
+  --popover-foreground: hsl(204 9% 95%);
+  --primary: hsl(205 91% 40%);
+  --primary-foreground: hsl(204 9% 95%);
+  --secondary: hsl(205 26% 15%);
+  --secondary-foreground: hsl(205 23% 95%);
+  --muted: hsl(205 26% 15%);
+  --muted-foreground: hsl(205 15% 65%);
+  --accent: hsl(209 49% 68%);
+  --accent-foreground: hsl(209 49% 10%);
+  --destructive: hsl(0 70% 45%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --border: hsl(205 30% 18%);
+  --input: hsl(205 30% 18%);
+  --ring: hsl(205 91% 40%);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius: var(--radius);
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
 @layer utilities {
-  /* Marker Pulse Animation */
   @keyframes marker-pulse {
     0%, 100% {
       transform: scale(1);
@@ -17,7 +94,6 @@
     animation: marker-pulse 1.6s ease-in-out infinite;
   }
 
-  /* Marker Glow Animation */
   @keyframes moving-glow {
     0% {
       box-shadow: 0 0 0 5px hsl(var(--primary) / 0.7);
@@ -39,7 +115,6 @@
     pointer-events: none;
   }
 
-  /* Marker Jump Animation */
   @keyframes marker-jump {
     0%, 100% {
       transform: translateY(0);

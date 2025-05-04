@@ -40,6 +40,7 @@ const RAW_RUNTIME_STATE =
           ["@radix-ui/react-tabs", "virtual:ea2650db39cb7362d4c6b71edde952be9b61f8a790a9debc2c3c2d1f68354cf75cf9e8c190bd428cf0ef1417cedb08af08fb43401895bea45e85f3fab931594f#npm:1.1.9"],\
           ["@shadcn/ui", "npm:0.0.4"],\
           ["@tailwindcss/vite", "virtual:ea2650db39cb7362d4c6b71edde952be9b61f8a790a9debc2c3c2d1f68354cf75cf9e8c190bd428cf0ef1417cedb08af08fb43401895bea45e85f3fab931594f#npm:4.1.5"],\
+          ["@types/geojson", "npm:7946.0.16"],\
           ["@types/google.maps", "npm:3.58.1"],\
           ["@types/mapbox-gl", "npm:3.4.1"],\
           ["@types/node", "npm:22.15.3"],\
@@ -59,7 +60,6 @@ const RAW_RUNTIME_STATE =
           ["lucide-react", "virtual:ea2650db39cb7362d4c6b71edde952be9b61f8a790a9debc2c3c2d1f68354cf75cf9e8c190bd428cf0ef1417cedb08af08fb43401895bea45e85f3fab931594f#npm:0.507.0"],\
           ["mapbox-gl", "npm:3.11.1"],\
           ["next-themes", "virtual:ea2650db39cb7362d4c6b71edde952be9b61f8a790a9debc2c3c2d1f68354cf75cf9e8c190bd428cf0ef1417cedb08af08fb43401895bea45e85f3fab931594f#npm:0.4.6"],\
-          ["postcss", "npm:8.5.3"],\
           ["react", "npm:19.1.0"],\
           ["react-dom", "virtual:ea2650db39cb7362d4c6b71edde952be9b61f8a790a9debc2c3c2d1f68354cf75cf9e8c190bd428cf0ef1417cedb08af08fb43401895bea45e85f3fab931594f#npm:19.1.0"],\
           ["react-icons", "virtual:ea2650db39cb7362d4c6b71edde952be9b61f8a790a9debc2c3c2d1f68354cf75cf9e8c190bd428cf0ef1417cedb08af08fb43401895bea45e85f3fab931594f#npm:5.5.0"],\
@@ -4472,6 +4472,7 @@ const RAW_RUNTIME_STATE =
           ["@radix-ui/react-tabs", "virtual:ea2650db39cb7362d4c6b71edde952be9b61f8a790a9debc2c3c2d1f68354cf75cf9e8c190bd428cf0ef1417cedb08af08fb43401895bea45e85f3fab931594f#npm:1.1.9"],\
           ["@shadcn/ui", "npm:0.0.4"],\
           ["@tailwindcss/vite", "virtual:ea2650db39cb7362d4c6b71edde952be9b61f8a790a9debc2c3c2d1f68354cf75cf9e8c190bd428cf0ef1417cedb08af08fb43401895bea45e85f3fab931594f#npm:4.1.5"],\
+          ["@types/geojson", "npm:7946.0.16"],\
           ["@types/google.maps", "npm:3.58.1"],\
           ["@types/mapbox-gl", "npm:3.4.1"],\
           ["@types/node", "npm:22.15.3"],\
@@ -4491,7 +4492,6 @@ const RAW_RUNTIME_STATE =
           ["lucide-react", "virtual:ea2650db39cb7362d4c6b71edde952be9b61f8a790a9debc2c3c2d1f68354cf75cf9e8c190bd428cf0ef1417cedb08af08fb43401895bea45e85f3fab931594f#npm:0.507.0"],\
           ["mapbox-gl", "npm:3.11.1"],\
           ["next-themes", "virtual:ea2650db39cb7362d4c6b71edde952be9b61f8a790a9debc2c3c2d1f68354cf75cf9e8c190bd428cf0ef1417cedb08af08fb43401895bea45e85f3fab931594f#npm:0.4.6"],\
-          ["postcss", "npm:8.5.3"],\
           ["react", "npm:19.1.0"],\
           ["react-dom", "virtual:ea2650db39cb7362d4c6b71edde952be9b61f8a790a9debc2c3c2d1f68354cf75cf9e8c190bd428cf0ef1417cedb08af08fb43401895bea45e85f3fab931594f#npm:19.1.0"],\
           ["react-icons", "virtual:ea2650db39cb7362d4c6b71edde952be9b61f8a790a9debc2c3c2d1f68354cf75cf9e8c190bd428cf0ef1417cedb08af08fb43401895bea45e85f3fab931594f#npm:5.5.0"],\
